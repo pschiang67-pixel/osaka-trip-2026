@@ -3,17 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <!-- Updated Title: Removed Nara -->
-    <title>2026 京阪家族旅</title>
+    
+    <!-- iOS App Icon Settings -->
+    <link rel="apple-touch-icon" sizes="180x180" href="https://images.unsplash.com/photo-1616053641775-d14457e5b61e?q=80&w=192&h=192&auto=format&fit=crop">
+    <link rel="icon" type="image/png" sizes="32x32" href="https://images.unsplash.com/photo-1616053641775-d14457e5b61e?q=80&w=32&h=32&auto=format&fit=crop">
+    <meta name="apple-mobile-web-app-title" content="2026京阪旅">
+    
+    <title>2026 京阪家族旅 (和風版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Noto+Serif+TC:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- Firebase SDK Setup -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, addDoc, deleteDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Handle potential missing config in local environments
+        let firebaseConfig;
+        try {
+            firebaseConfig = JSON.parse(__firebase_config);
+        } catch (e) {
+            console.warn("Firebase config not found, using placeholder.");
+            firebaseConfig = { apiKey: "placeholder", authDomain: "placeholder", projectId: "placeholder" };
+        }
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        // Expose Firebase services to global window object for Alpine.js to access
+        window.db = db;
+        window.auth = auth;
+        window.appId = appId;
+        window.signInAnonymously = signInAnonymously;
+        window.signInWithCustomToken = signInWithCustomToken;
+        window.onAuthStateChanged = onAuthStateChanged;
+        window.collection = collection;
+        window.doc = doc;
+        window.addDoc = addDoc;
+        window.deleteDoc = deleteDoc;
+        window.onSnapshot = onSnapshot;
+        window.query = query;
+        window.orderBy = orderBy;
+    </script>
     
     <!-- App Logic -->
     <script>
         function appData() {
             return {
-                // Initial State is 'cover'
                 activeTab: 'cover',
                 selectedDay: 0,
                 showDetailModal: false,
@@ -31,18 +71,19 @@
 
                 // Weather Data
                 weatherForecast: [
-                    { time: '現在', icon: 'fas fa-sun text-yellow-300', temp: '16°' },
-                    { time: '14:00', icon: 'fas fa-cloud-sun text-yellow-300', temp: '17°' },
-                    { time: '15:00', icon: 'fas fa-cloud text-white/90', temp: '16°' },
-                    { time: '16:00', icon: 'fas fa-cloud text-white/90', temp: '15°' },
-                    { time: '17:00', icon: 'fas fa-moon text-indigo-200', temp: '14°' },
-                    { time: '18:00', icon: 'fas fa-moon text-indigo-200', temp: '13°' },
+                    { time: '現在', icon: 'fas fa-sun text-orange-400', temp: '16°' },
+                    { time: '14:00', icon: 'fas fa-cloud-sun text-orange-400', temp: '17°' },
+                    { time: '15:00', icon: 'fas fa-cloud text-slate-400', temp: '16°' },
+                    { time: '16:00', icon: 'fas fa-cloud text-slate-400', temp: '15°' },
+                    { time: '17:00', icon: 'fas fa-moon text-indigo-400', temp: '14°' },
+                    { time: '18:00', icon: 'fas fa-moon text-indigo-400', temp: '13°' },
                 ],
 
                 // Data Structure
                 days: [
                     {
-                        dateLabel: '3/18',
+                        date: '3/18',      // Updated structure
+                        dayOfWeek: 'WED.', // Added day of week (2026/3/18 is Wednesday)
                         label: 'D1 大阪',
                         title: '大阪抵達 & 天保山',
                         subtitle: '機場巴士直達 • 港灣夕陽',
@@ -60,7 +101,7 @@
                                         title: '虎航 IT210',
                                         location: '桃園機場第一航廈',
                                         desc: '第一組起飛',
-                                        colorClass: 'border-l-4 border-sky-500',
+                                        colorClass: 'border-l-4 border-sky-400',
                                         bgClass: 'bg-sky-50', 
                                         highlight: false,
                                         mustEat: false,
@@ -75,7 +116,7 @@
                                         title: '星宇 JX820',
                                         location: '桃園機場第一航廈',
                                         desc: '第二組起飛',
-                                        colorClass: 'border-l-4 border-sky-500',
+                                        colorClass: 'border-l-4 border-sky-400',
                                         bgClass: 'bg-sky-50', 
                                         highlight: false,
                                         mustEat: false,
@@ -92,11 +133,10 @@
                                 title: '抵達關西機場',
                                 navLink: 'https://maps.app.goo.gl/4TPTZqY62tdyDWQB8',
                                 desc: '全員集合，準備搭乘機場豪華巴士。',
-                                colorClass: 'border-l-4 border-blue-500',
+                                colorClass: 'border-l-4 border-blue-400',
                                 bgClass: 'bg-blue-50',
                                 highlight: true,
                                 mustEat: false,
-                                // Stacked KIX Maps
                                 img: 'https://drive.google.com/thumbnail?id=1an7S3rawWog3Rc03XpfkF5-PCJncpbVz&sz=w2560',
                                 detailImages: [
                                     'https://drive.google.com/thumbnail?id=1an7S3rawWog3Rc03XpfkF5-PCJncpbVz&sz=w2560',
@@ -111,14 +151,14 @@
                                 title: '天保山港灣村',
                                 navLink: 'https://maps.app.goo.gl/9jejQZHCMcfWHWgg7',
                                 desc: 'A組放行李，B組玩樂高/海遊館。',
-                                colorClass: 'border-l-4 border-indigo-500',
+                                colorClass: 'border-l-4 border-indigo-400',
                                 bgClass: 'bg-indigo-50',
                                 highlight: true,
                                 mustEat: false,
                                 img: 'https://drive.google.com/thumbnail?id=1ED7ASJKsKWwm2RGH_UviVrF8R8y93j9r&sz=w2560',
                                 highlights: '體驗大阪獨有的「免費渡船」過河，享受港灣區的悠閒氛圍。',
                                 food: true,
-                                // Corrected Food Images
+                                // Corrected Food Images (Using Wikimedia/Public sources with no-referrer)
                                 foodList: [
                                     { name: '難波美食小巷', img: 'https://drive.google.com/thumbnail?id=1tmoPYfzMtS-IeyH98gmW0zNHevEt3RUp&sz=w2560' },
                                     { name: '自由軒咖哩飯', img: 'https://drive.google.com/thumbnail?id=1o6K3rvwWSeeLvRdV5YjPLe8JlnTgbPZZ&sz=w2560' },
@@ -137,7 +177,7 @@
                                         title: 'A組: 星光環球',
                                         navLink: 'https://maps.app.goo.gl/b19CicmizUC5ySve6',
                                         desc: '傍晚入園，晚餐推薦。',
-                                        colorClass: 'border-l-4 border-purple-500',
+                                        colorClass: 'border-l-4 border-purple-400',
                                         bgClass: 'bg-purple-50',
                                         highlight: true,
                                         mustEat: true,
@@ -148,8 +188,8 @@
                                         foodList: [
                                             { name: '奇諾比奧咖啡店：瑪利歐漢堡', img: 'https://drive.google.com/thumbnail?id=1SFokEN4kysLNtFbgYSVWMbVmYtDtTLoY&sz=w2560' },
                                             { name: '三根掃帚：烤雞拼盤 & 奶油啤酒', img: 'https://drive.google.com/thumbnail?id=1KsgBNXzj1J-hGJqtZrc0QQK1FVKVyke1&sz=w2560' },
-                                            { name: 'CityWalk: Red Lobster (龍蝦海鮮)', img: 'https://drive.google.com/thumbnail?id=1njq6h23dKWJA3ZJvWkzKdJv0cE7iq2pb&sz=w2560' },
-                                            { name: 'CityWalk: Shake Shack (美式漢堡)', img: 'https://drive.google.com/thumbnail?id=1lCPRvIUGlRTWoI8yf1qDCmf84gYfFZpC&sz=w2560' }
+                                            { name: 'Red Lobster (龍蝦海鮮)', img: 'https://drive.google.com/thumbnail?id=1njq6h23dKWJA3ZJvWkzKdJv0cE7iq2pb&sz=w2560' },
+                                            { name: 'Shake Shack (美式漢堡)', img: 'https://drive.google.com/thumbnail?id=1lCPRvIUGlRTWoI8yf1qDCmf84gYfFZpC&sz=w2560' }
                                         ],
                                         tips: '閉園後 CityWalk 餐廳人潮眾多，建議若在園區內玩到很晚，可先吃些小點心，或預約餐廳。'
                                     },
@@ -159,7 +199,7 @@
                                         title: 'B組: 海遊館晚餐',
                                         navLink: 'https://www.google.com/maps/dir/天保山渡船場/天保山渡船場+(桜島側)/環球利蓓爾酒店',
                                         desc: '欣賞完海遊館後，享用美食。',
-                                        colorClass: 'border-l-4 border-orange-500',
+                                        colorClass: 'border-l-4 border-orange-400',
                                         bgClass: 'bg-orange-50',
                                         highlight: false,
                                         mustEat: true,
@@ -173,7 +213,7 @@
                                             { name: '會津屋：元祖章魚燒 (無醬汁)', img: 'https://drive.google.com/thumbnail?id=1vqNlSYBmg9iYjj3f7fIKr5XI9EITM9_0&sz=w2560' },
                                             { name: '築港麵工房：海景烏龍麵', img: 'https://drive.google.com/thumbnail?id=1KgdkXr7CJTWDANEnSHa8zJkgwfSP-XCf&sz=w2560' }
                                         ],
-                                        tips: '⚠️ 重要交通指引：點擊「導航去」可看完整<span class="font-bold text-red-400 bg-red-900/50 px-1 rounded">步行路線</span>。請至海遊館西側的「天保山渡船場」搭船（免費，每小時00分/30分發船）。下船後即抵達櫻島側，沿著河岸步行約 15 分鐘即可回到環球利蓓爾酒店。'
+                                        tips: '⚠️ 重要交通指引：點擊「導航去」可看完整<span class="font-bold text-red-500 bg-red-100 px-1 rounded">步行路線</span>。請至海遊館西側的「天保山渡船場」搭船（免費，每小時00分/30分發船）。下船後即抵達櫻島側，沿著河岸步行約 15 分鐘即可回到環球利蓓爾酒店。'
                                     }
                                 ]
                             },
@@ -184,8 +224,8 @@
                                 navLink: 'https://www.google.com/maps/search/?api=1&query=環球利蓓爾酒店',
                                 location: '環球利蓓爾酒店',
                                 desc: '前往飯店休息，享受天然溫泉。',
-                                colorClass: 'border-l-4 border-slate-600',
-                                bgClass: 'bg-slate-50',
+                                colorClass: 'border-l-4 border-slate-400',
+                                bgClass: 'bg-slate-100',
                                 highlight: false,
                                 mustEat: false,
                                 img: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=600&auto=format&fit=crop',
@@ -196,6 +236,8 @@
                     },
                     {
                         dateLabel: '3/19',
+                        date: '3/19',
+                        dayOfWeek: 'THU.',
                         label: 'D2 USJ',
                         title: '環球影城 & 姬路城',
                         subtitle: '任天堂世界 • 世界遺產',
@@ -207,7 +249,7 @@
                                 time: '07:30',
                                 title: 'USJ 環球影城',
                                 desc: '全日暢玩！超級任天堂世界。',
-                                colorClass: 'border-l-4 border-red-500',
+                                colorClass: 'border-l-4 border-red-400',
                                 bgClass: 'bg-red-50',
                                 highlight: true,
                                 mustEat: true,
@@ -226,7 +268,7 @@
                                 time: '10:30',
                                 title: '姬路城 & 神戶',
                                 desc: '世界遺產白鷺城與麵包超人。',
-                                colorClass: 'border-l-4 border-indigo-500',
+                                colorClass: 'border-l-4 border-indigo-400',
                                 bgClass: 'bg-indigo-50',
                                 highlight: true,
                                 mustEat: false,
@@ -246,8 +288,8 @@
                                 navLink: 'https://www.google.com/maps/search/?api=1&query=環球利蓓爾酒店',
                                 location: '環球利蓓爾酒店',
                                 desc: '返回飯店休息。',
-                                colorClass: 'border-l-4 border-slate-600',
-                                bgClass: 'bg-slate-50',
+                                colorClass: 'border-l-4 border-slate-400',
+                                bgClass: 'bg-slate-100',
                                 highlight: false,
                                 mustEat: false,
                                 img: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?q=80&w=600&auto=format&fit=crop',
@@ -258,6 +300,8 @@
                     },
                     {
                         dateLabel: '3/20',
+                        date: '3/20',
+                        dayOfWeek: 'FRI.',
                         label: 'D3 京都',
                         title: '京都古都巡禮',
                         subtitle: '清水舞台 • 金閣夕照',
@@ -269,7 +313,7 @@
                                 time: '09:30',
                                 title: '清水寺 & 祇園',
                                 desc: '早晨參拜清水舞台，漫步花見小路。',
-                                colorClass: 'border-l-4 border-amber-500',
+                                colorClass: 'border-l-4 border-amber-400',
                                 bgClass: 'bg-amber-50',
                                 highlight: true,
                                 mustEat: true,
@@ -306,8 +350,8 @@
                                 navLink: 'https://www.google.com/maps/search/?api=1&query=MIMARU+OSAKA+SHINSAIBASHI+NORTH',
                                 location: 'MIMARU 大阪 心齋橋NORTH',
                                 desc: '入住公寓式酒店，空間寬敞。',
-                                colorClass: 'border-l-4 border-slate-600',
-                                bgClass: 'bg-slate-50',
+                                colorClass: 'border-l-4 border-slate-400',
+                                bgClass: 'bg-slate-100',
                                 highlight: false,
                                 mustEat: false,
                                 img: 'https://images.unsplash.com/photo-1522771753033-6a9a6f9f7258?q=80&w=600&auto=format&fit=crop',
@@ -318,6 +362,8 @@
                     },
                     {
                         dateLabel: '3/21',
+                        date: '3/21',
+                        dayOfWeek: 'SAT.',
                         label: 'D4 嵐山',
                         title: '嵐山小火車 & 購物',
                         subtitle: '竹林深處 • 心齋橋',
@@ -349,7 +395,7 @@
                                 time: '15:00',
                                 title: '心齋橋 & 道頓堀',
                                 desc: '大阪最強購物區，跑跑人看板打卡。',
-                                colorClass: 'border-l-4 border-pink-500',
+                                colorClass: 'border-l-4 border-pink-400',
                                 bgClass: 'bg-pink-50',
                                 highlight: false,
                                 mustEat: true,
@@ -370,8 +416,8 @@
                                 navLink: 'https://www.google.com/maps/search/?api=1&query=MIMARU+OSAKA+SHINSAIBASHI+NORTH',
                                 location: 'MIMARU 大阪 心齋橋NORTH',
                                 desc: '最後一晚，整理戰利品。',
-                                colorClass: 'border-l-4 border-slate-600',
-                                bgClass: 'bg-slate-50',
+                                colorClass: 'border-l-4 border-slate-400',
+                                bgClass: 'bg-slate-100',
                                 highlight: false,
                                 mustEat: false,
                                 img: 'https://images.unsplash.com/photo-1522771753033-6a9a6f9f7258?q=80&w=600&auto=format&fit=crop',
@@ -382,6 +428,8 @@
                     },
                     {
                         dateLabel: '3/22',
+                        date: '3/22',
+                        dayOfWeek: 'SUN.',
                         label: 'D5 返家',
                         title: '黑門市場 & 返台',
                         subtitle: '海鮮早午餐 • 滿載而歸',
@@ -393,8 +441,8 @@
                                 time: '09:30',
                                 title: '黑門市場',
                                 desc: '大阪人的廚房，吃爆海鮮當早午餐。',
-                                colorClass: 'border-l-4 border-gray-600',
-                                bgClass: 'bg-gray-50',
+                                colorClass: 'border-l-4 border-gray-400',
+                                bgClass: 'bg-gray-100',
                                 highlight: false,
                                 mustEat: true,
                                 img: 'https://images.unsplash.com/photo-1590924976721-e0c1f678f564?auto=format&fit=crop&q=80&w=200',
@@ -413,7 +461,7 @@
                                 title: '關西機場購物',
                                 navLink: 'https://maps.app.goo.gl/4TPTZqY62tdyDWQB8',
                                 desc: '免稅店最後衝刺，把日幣花光！',
-                                colorClass: 'border-l-4 border-pink-500',
+                                colorClass: 'border-l-4 border-pink-400',
                                 bgClass: 'bg-pink-50',
                                 highlight: true,
                                 mustEat: false,
@@ -427,7 +475,7 @@
                                 title: '華航 CI153',
                                 location: '關西國際機場',
                                 desc: '帶著滿滿回憶返台。',
-                                colorClass: 'border-l-4 border-sky-500',
+                                colorClass: 'border-l-4 border-sky-400',
                                 bgClass: 'bg-sky-50',
                                 highlight: false,
                                 mustEat: false,
@@ -439,27 +487,103 @@
                     }
                 ],
 
-                // Expenses Data
-                expenses: [],
-                newExpense: { name: '', amount: '', category: 'food', paymentMethod: 'cash' },
-                totalExpenseJPY: 0,
-                
-                // Categories
-                categories: [
-                    { id: 'food', name: '餐飲', icon: 'fas fa-utensils', color: 'bg-orange-900/30 text-orange-400' },
-                    { id: 'transport', name: '交通', icon: 'fas fa-bus', color: 'bg-blue-900/30 text-blue-400' },
-                    { id: 'ticket', name: '門票', icon: 'fas fa-ticket-alt', color: 'bg-purple-900/30 text-purple-400' },
-                    { id: 'shopping', name: '購物', icon: 'fas fa-shopping-bag', color: 'bg-pink-900/30 text-pink-400' },
-                    { id: 'hotel', name: '住宿', icon: 'fas fa-bed', color: 'bg-indigo-900/30 text-indigo-400' },
-                    { id: 'other', name: '雜支', icon: 'fas fa-ellipsis-h', color: 'bg-gray-800 text-gray-400' }
-                ],
-                
-                // Payment Methods
-                paymentMethods: [
-                    { id: 'cash', name: '現金', icon: 'fas fa-money-bill-wave' },
-                    { id: 'card', name: '信用卡', icon: 'fas fa-credit-card' }
-                ],
+                // Firebase integrated logic (init method)
+                async init() {
+                    const auth = window.auth;
+                    
+                    // Wait for auth to initialize/sign-in first
+                    try {
+                         // Check global token from environment
+                         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await window.signInWithCustomToken(auth, __initial_auth_token);
+                         } else {
+                            // Fallback to anonymous
+                            await window.signInAnonymously(auth);
+                         }
+                    } catch (e) {
+                        console.error("Authentication failed:", e);
+                    }
 
+                    // Setup Auth Listener
+                    window.onAuthStateChanged(auth, (user) => {
+                        if (user) {
+                            this.userId = user.uid;
+                            this.listenToExpenses();
+                        }
+                    });
+                },
+
+                // Firestore listener
+                listenToExpenses() {
+                    if (!this.userId) return;
+                    // /artifacts/{appId}/users/{userId}/expenses
+                    const q = window.query(
+                        window.collection(window.db, 'artifacts', window.appId, 'users', this.userId, 'expenses'),
+                        window.orderBy('createdAt', 'desc')
+                    );
+                    
+                    window.onSnapshot(q, (snapshot) => {
+                        const newExpenses = [];
+                        snapshot.forEach((doc) => {
+                            newExpenses.push({ id: doc.id, ...doc.data() });
+                        });
+                        this.expenses = newExpenses;
+                        this.calculateTotal();
+                    }, (error) => {
+                        console.error("Firestore error:", error);
+                    });
+                },
+
+                calculateTotal() {
+                    this.totalExpenseJPY = this.expenses.reduce((sum, item) => sum + item.amount, 0);
+                },
+
+                async addExpense() {
+                    if (!this.userId || !this.newExpense.name || !this.newExpense.amount) return;
+                    
+                    const amount = parseInt(this.newExpense.amount);
+                    const expenseData = {
+                        name: this.newExpense.name,
+                        amount: amount,
+                        amountTWD: Math.round(amount * this.exchangeRate),
+                        category: this.newExpense.category,
+                        paymentMethod: this.newExpense.paymentMethod,
+                        date: new Date().toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' }),
+                        createdAt: Date.now()
+                    };
+
+                    try {
+                        await window.addDoc(
+                            window.collection(window.db, 'artifacts', window.appId, 'users', this.userId, 'expenses'),
+                            expenseData
+                        );
+                        // Reset form
+                        this.newExpense.name = '';
+                        this.newExpense.amount = '';
+                        this.showAddExpense = false;
+                        this.showCategoryMenu = false;
+                    } catch (e) {
+                        console.error("Add failed", e);
+                    }
+                },
+
+                async deleteExpense(id) {
+                    if (!this.userId || !id) return;
+                    if(!confirm("確定要刪除這筆紀錄嗎？")) return;
+
+                    try {
+                        await window.deleteDoc(
+                            window.doc(window.db, 'artifacts', window.appId, 'users', this.userId, 'expenses', id)
+                        );
+                    } catch (e) {
+                        console.error("Delete failed", e);
+                    }
+                },
+                
+                getCategory(id) {
+                    return this.categories.find(c => c.id === id) || this.categories[0];
+                },
+                
                 openModal(spot) {
                     this.selectedEvent = spot;
                     this.showDetailModal = true;
@@ -469,7 +593,6 @@
                     this.showDetailModal = false;
                 },
 
-                // New methods for Food Modal
                 openFoodModal(foodItem) {
                     this.selectedFood = foodItem;
                     this.showFoodModal = true;
@@ -482,30 +605,6 @@
 
                 changeDay(index) {
                     this.selectedDay = index;
-                },
-
-                addExpense() {
-                    if (this.newExpense.name && this.newExpense.amount) {
-                        const amount = parseInt(this.newExpense.amount);
-                        this.expenses.unshift({
-                            name: this.newExpense.name,
-                            amount: amount,
-                            amountTWD: Math.round(amount * this.exchangeRate),
-                            category: this.newExpense.category,
-                            paymentMethod: this.newExpense.paymentMethod,
-                            date: new Date().toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })
-                        });
-                        this.totalExpenseJPY += amount;
-                        this.newExpense.name = '';
-                        this.newExpense.amount = '';
-                        this.newExpense.paymentMethod = 'cash';
-                        this.showAddExpense = false;
-                        this.showCategoryMenu = false;
-                    }
-                },
-                
-                getCategory(id) {
-                    return this.categories.find(c => c.id === id) || this.categories[0];
                 }
             }
         }
@@ -515,10 +614,10 @@
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 
     <style>
-        /* Base Settings - Dark Mode */
+        /* Base Settings - Vintage Beige Mode */
         body {
             font-family: 'Noto Sans TC', sans-serif;
-            background-color: #121212; /* Deep Black Background */
+            background-color: #e2ded3; /* Vintage Beige Background */
             -webkit-tap-highlight-color: transparent;
             margin: 0;
             padding: 0;
@@ -526,16 +625,16 @@
             color: #1d1d1f; 
         }
 
-        /* App Container - Dark Mode */
+        /* App Container - Vintage Beige Mode */
         #app-frame {
             max-width: 480px;
             margin: 0 auto;
-            background-color: #121212; /* Match body background */
+            background-color: #e2ded3; /* Match body background */
             height: 100vh;
             max-height: 100vh;
             overflow: hidden;
             position: relative;
-            box-shadow: 0 0 30px rgba(0,0,0,0.5); /* Stronger shadow for depth */
+            box-shadow: 0 0 30px rgba(0,0,0,0.05); /* Softer shadow */
             display: flex;
             flex-direction: column;
         }
@@ -548,11 +647,9 @@
             font-family: "Huiwen Fangsong", "FangSong", "STFangsong", "Noto Serif TC", serif;
         }
 
-        /* Washi Paper Texture for Modals
-           Using a subtle noise pattern svg data uri and a warm off-white color 
-        */
+        /* Washi Paper Texture for Modals */
         .washi-paper {
-            background-color: #fdfbf7;
+            background-color: #fffdf6; /* Warm Ivory */
             background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
         }
         
@@ -570,44 +667,46 @@
             -webkit-text-fill-color: transparent;
         }
 
-        /* Floating Card Style (White Card on Dark Bg) */
+        /* Floating Card Style (Warm Ivory on Beige Bg) */
         .float-card {
-            background-color: #ffffff;
+            background-color: #fffdf6; /* Warm Ivory Card */
             border-radius: 1.2rem;
-            /* Layered shadow for floating effect on dark bg */
+            /* Layered shadow for floating effect */
             box-shadow: 
-                0 4px 6px -1px rgba(0, 0, 0, 0.3), 
-                0 12px 20px -4px rgba(0, 0, 0, 0.4);
-            /* No border needed for white card on black bg */
-            border: none; 
+                0 4px 6px -1px rgba(0, 0, 0, 0.05), 
+                0 12px 20px -4px rgba(0, 0, 0, 0.05);
+            /* Very subtle white border to make it pop */
+            border: 1px solid rgba(255, 255, 255, 0.6); 
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
 
         .float-card:active {
             transform: scale(0.98);
-            box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.03);
         }
 
         /* Hero Image Card Height */
         .hero-overlay {
             position: absolute;
             inset: 0;
-            /* Seamless blend to #121212 */
+            /* Seamless blend to #e2ded3 */
+            /* Adjusted gradient stops to cover the subtitle text area (approx bottom-12) with more opacity */
             background: linear-gradient(to bottom, 
-                rgba(0,0,0,0.4) 0%, 
-                rgba(0,0,0,0.1) 40%, 
-                rgba(18,18,18,0.7) 80%, 
-                #121212 100%);
+                rgba(0,0,0,0.2) 0%, 
+                rgba(0,0,0,0) 40%, 
+                rgba(226,222,211,0.6) 70%, 
+                rgba(226,222,211,0.95) 90%, 
+                #e2ded3 100%);
         }
 
         /* Frosted Glass - Weather Widget */
         .glass-weather {
-            background: rgba(0, 0, 0, 0.4); /* Darker glass for better contrast */
+            background: rgba(255, 255, 255, 0.5); /* Lighter glass */
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.6);
             border-radius: 20px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
         }
 
         /* Scrollable Content Container */
@@ -621,64 +720,46 @@
         }
     </style>
 </head>
-<body x-data="appData()">
+<body x-data="appData()" x-init="init()">
 
     <!-- App Frame Wrapper -->
     <div id="app-frame">
         
-        <!-- COVER PAGE (Updated Layout) -->
+        <!-- COVER PAGE -->
         <div class="flex flex-col h-full w-full relative z-20" x-show="activeTab === 'cover'" x-transition:leave="transition ease-in duration-500" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
-            <!-- Background Image -->
+            <!-- Lightened Cover Background -->
             <div class="absolute inset-0 z-0">
-                <img src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=1000&auto=format&fit=crop" class="w-full h-full object-cover opacity-40">
-                <div class="absolute inset-0 bg-gradient-to-b from-[#121212] via-transparent to-[#121212]"></div>
+                <img src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=1000&auto=format&fit=crop" class="w-full h-full object-cover opacity-60">
+                <div class="absolute inset-0 bg-gradient-to-b from-[#e2ded3] via-transparent to-[#e2ded3]"></div>
             </div>
-
-            <!-- Content -->
             <div class="relative z-10 flex flex-col items-center justify-center h-full text-center p-8">
-                <!-- Decorative Line -->
                 <div class="w-1 h-20 bg-gradient-to-b from-transparent to-[#d4af37] mb-8"></div>
-                
-                <h2 class="text-white text-lg tracking-[0.5em] mb-8 font-light opacity-80">2026 SPRING</h2>
-                
-                <!-- Adjusted Layout: Vertical Text, Family Trip on Right, Keihan Centered (main) -->
+                <h2 class="text-stone-600 text-lg tracking-[0.5em] mb-8 font-light">2026 SPRING</h2>
+                <!-- Cover Title -->
                 <div class="flex items-center justify-center" style="writing-mode: vertical-rl;">
-                    <!-- Right side (First in DOM for vertical-rl) -->
-                    <div class="text-2xl font-bold text-white font-fangsong tracking-[0.3em] opacity-90 mx-2 mt-4">
-                        家族旅行
-                    </div>
-                    <!-- Center/Main -->
-                    <div class="text-6xl font-bold text-white font-fangsong tracking-[0.3em] mx-4 leading-none">
-                        京阪
-                    </div>
+                    <div class="text-2xl font-bold text-stone-500 font-fangsong tracking-[0.3em] mx-2 mt-4">家族旅行</div>
+                    <div class="text-6xl font-bold text-stone-800 font-fangsong tracking-[0.3em] mx-4 leading-none">京阪</div>
                 </div>
-
-                <!-- Enter Button -->
-                <button @click="activeTab = 'home'" class="mt-16 px-8 py-3 bg-white/10 border border-white/30 rounded-full text-white hover:bg-white/20 transition-all backdrop-blur-sm tracking-widest font-fangsong flex items-center gap-2">
+                <!-- Start Button (Spring style) -->
+                <button @click="activeTab = 'home'" class="mt-16 px-8 py-3 bg-white/40 border border-white/60 rounded-full text-stone-700 hover:bg-white/60 transition-all backdrop-blur-md tracking-widest font-fangsong flex items-center gap-2 shadow-sm">
                     <span>開啟旅程</span>
                     <i class="fas fa-chevron-right text-xs opacity-70"></i>
                 </button>
             </div>
         </div>
 
-        <!-- SAKURA CANVAS (Overlay) -->
         <canvas id="sakura-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-30"></canvas>
 
-        <!-- ===== HOME TAB ===== -->
-        <div class="flex flex-col h-full w-full" x-show="activeTab === 'home'" style="display: none;"> <!-- Hidden initially -->
-            
-            <!-- 1. Hero Section (Full width, seamless) -->
+        <!-- MAIN APP -->
+        <div class="flex flex-col h-full w-full" x-show="activeTab === 'home'" style="display: none;">
+            <!-- 1. Hero Section -->
             <div class="px-0 pt-0 pb-0 flex-shrink-0">
-                <!-- Dark mode container style (bg-black) -->
-                <div class="relative overflow-hidden h-[30vh] bg-[#121212] shadow-none border-none">
-                    
-                    <!-- New Title Overlay (Moved Top-Left, Two Lines) -->
+                <div class="relative overflow-hidden h-[30vh] bg-[#e2ded3] shadow-none border-none">
                     <div class="absolute top-3 left-4 z-20 text-white drop-shadow-md border-l-2 border-white/80 pl-3 py-1 text-left">
-                        <div class="font-bold tracking-[0.1em] text-sm opacity-90 mb-0.5 text-gray-200">2026。春</div>
+                        <div class="font-bold tracking-[0.1em] text-sm opacity-90 mb-0.5 text-stone-100">2026。春</div>
                         <div class="font-bold tracking-[0.15em] text-xl leading-none">京阪家族旅行</div>
                     </div>
-
-                    <!-- Cross-fade Image Container -->
+                    <!-- Images -->
                     <template x-for="(day, index) in days" :key="index">
                         <img :src="day.heroImg"
                              x-show="selectedDay === index"
@@ -691,41 +772,40 @@
                              class="absolute inset-0 w-full h-full object-cover"
                              onerror="this.src='https://images.unsplash.com/photo-1590559399607-90d523102a9e?q=80&w=1000&auto=format&fit=crop'">
                     </template>
-                    
                     <div class="hero-overlay"></div>
-
-                    <!-- Weather Widget (Top Right) -->
+                    <!-- Weather -->
                     <div class="absolute top-4 right-4 z-20">
-                        <div class="glass-weather p-2 pl-3 flex items-center gap-2 text-white">
-                            <div class="flex flex-col items-center pr-2 border-r border-white/20">
-                                <span class="text-[10px] font-bold tracking-wider text-gray-200">大阪</span>
-                                <i class="fas fa-cloud-sun text-xs mt-0.5 text-yellow-300"></i>
+                        <div class="glass-weather p-2 pl-3 flex items-center gap-2 text-stone-700">
+                            <div class="flex flex-col items-center pr-2 border-r border-stone-300/50">
+                                <span class="text-[10px] font-bold tracking-wider text-stone-600">大阪</span>
+                                <i class="fas fa-cloud-sun text-xs mt-0.5 text-orange-400"></i>
                             </div>
                             <div class="flex overflow-x-auto no-scrollbar gap-2 max-w-[100px]">
                                 <template x-for="hour in weatherForecast" :key="hour.time">
                                     <div class="flex flex-col items-center flex-shrink-0 min-w-[20px]">
-                                        <span class="text-[8px] opacity-70 text-gray-300" x-text="hour.time"></span>
-                                        <span class="text-[9px] font-bold mt-0.5 text-white" x-text="hour.temp"></span>
+                                        <span class="text-[8px] opacity-70 text-stone-500" x-text="hour.time"></span>
+                                        <span class="text-[9px] font-bold mt-0.5 text-stone-700" x-text="hour.temp"></span>
                                     </div>
                                 </template>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Day Title (Moved to Bottom Right & Smaller) -->
+                    <!-- Day Title -->
                     <div class="absolute bottom-12 right-6 z-20 text-right">
-                        <h1 class="text-sm font-bold text-white/90 leading-tight drop-shadow-md tracking-wide" x-text="days[selectedDay].title"></h1>
-                        <span class="text-white/60 text-[9px] font-medium tracking-wide drop-shadow-sm block mt-1" x-text="days[selectedDay].subtitle"></span>
+                        <h1 class="text-sm font-bold text-stone-700 leading-tight tracking-wide" x-text="days[selectedDay].title"></h1>
+                        <span class="text-stone-500 text-[9px] font-medium tracking-wide block mt-1" x-text="days[selectedDay].subtitle"></span>
                     </div>
-
-                    <!-- Date Tabs (Overlapping Bottom Edge) -->
+                    <!-- Tabs -->
                     <div class="absolute bottom-0 w-full z-30 flex justify-between px-6 pb-1">
                         <template x-for="(day, index) in days" :key="index">
                             <button @click="changeDay(index)" 
                                     class="flex flex-col items-center justify-end transition-all duration-300 group pb-2"
                                     :class="selectedDay === index ? 'opacity-100 translate-y-0' : 'opacity-50 hover:opacity-80'">
-                                <span class="text-sm font-bold text-white leading-none font-mono drop-shadow-md" x-text="day.dateLabel"></span>
-                                <div class="h-1 rounded-full bg-white mt-1 transition-all duration-300 shadow-sm shadow-black/50"
+                                <div class="flex flex-col items-center leading-none">
+                                     <span class="text-sm font-bold text-stone-600 font-mono drop-shadow-sm" x-text="day.date"></span>
+                                     <span class="text-[10px] font-bold text-stone-400 font-mono mt-0.5" x-text="day.dayOfWeek"></span>
+                                </div>
+                                <div class="h-1 rounded-full bg-rose-400 mt-1 transition-all duration-300 shadow-sm"
                                      :class="selectedDay === index ? 'w-full opacity-100' : 'w-0 opacity-0'"></div>
                             </button>
                         </template>
@@ -733,476 +813,210 @@
                 </div>
             </div>
 
-            <!-- 2. Content Section (70% Height - Scrollable) -->
-            <!-- Dark mode bg -->
-            <div class="flex-1 relative z-10 px-5 pt-5 scrollable-content bg-[#121212]">
-                
-                <!-- Vertical Timeline Cards -->
+            <!-- 2. Content -->
+            <div class="flex-1 relative z-10 px-5 pt-5 scrollable-content bg-[#e2ded3]">
                 <div class="space-y-0 pb-8 relative">
-                    <!-- Template Loop -->
                     <template x-for="(spot, index) in days[selectedDay].events" :key="spot.id || spot.title">
                         <div class="relative z-10 flex">
-                            
-                            <!-- Timeline Left Column -->
+                            <!-- Timeline -->
                             <div class="flex flex-col items-center mr-2 w-[2rem] flex-shrink-0 relative">
-                                <!-- Time Label (Light Gray) -->
-                                <span class="text-[10px] font-bold text-gray-400 font-mono mb-1 pt-2" x-text="spot.time"></span>
-                                
-                                <!-- Dot (Updated border color to dark bg) -->
-                                <div class="w-2.5 h-2.5 rounded-full border-2 border-[#121212] shadow-sm z-10 bg-amber-500"></div>
-                                
-                                <!-- Connecting Line (Darker line) -->
-                                <div class="w-0.5 bg-gray-800 flex-1 my-1" 
-                                     x-show="index !== days[selectedDay].events.length - 1"></div>
+                                <span class="text-[10px] font-bold text-stone-400 font-mono mb-1 pt-2" x-text="spot.time"></span>
+                                <div class="w-2.5 h-2.5 rounded-full border-2 border-[#e2ded3] shadow-sm z-10 bg-rose-300"></div>
+                                <div class="w-0.5 bg-stone-300 flex-1 my-1" x-show="index !== days[selectedDay].events.length - 1"></div>
                             </div>
-
-                            <!-- Content Column -->
-                            <!-- Added mr-10 to reduce card width by approx 10% -->
-                            <div class="flex-1 pb-4 mr-10"> 
-                                
-                                <!-- Split View -->
+                            <!-- Card -->
+                            <div class="flex-1 pb-4 mr-2">
                                 <template x-if="spot.type === 'split'">
                                     <div class="grid grid-cols-2 gap-3 h-full">
                                         <template x-for="subSpot in spot.items" :key="subSpot.id || subSpot.title">
-                                            <div @click="openModal(subSpot)" 
-                                                 class="float-card p-2 flex flex-col gap-1 relative overflow-hidden group cursor-pointer h-26 hover:opacity-95 transition-opacity">
-                                                
-                                                <!-- Content Centered -->
+                                            <div @click="openModal(subSpot)" class="float-card p-2 flex flex-col gap-1 relative overflow-hidden group cursor-pointer h-26 hover:shadow-md transition-shadow">
                                                 <div class="flex-1 flex flex-col justify-center items-center text-center w-full">
-                                                    <!-- REMOVED Time Display -->
-                                                    
-                                                    <!-- Title (Unified Font Size) -->
-                                                    <h3 class="font-fangsong font-bold text-slate-800 text-lg leading-tight mb-1 line-clamp-1" x-text="subSpot.title"></h3>
-                                                    
-                                                    <!-- Desc (Unified Font Size) -->
-                                                    <p class="text-xs text-slate-400 line-clamp-2 leading-relaxed" x-text="subSpot.desc"></p>
+                                                    <div class="flex items-center gap-1 mb-1">
+                                                        <div class="w-1.5 h-1.5 rounded-full" :class="subSpot.colorClass.replace('border-l-4', 'bg')"></div>
+                                                        <span class="text-[10px] font-bold text-stone-400 font-mono" x-text="subSpot.time"></span>
+                                                    </div>
+                                                    <h3 class="font-fangsong font-bold text-stone-700 text-lg leading-tight mb-1 line-clamp-1" x-text="subSpot.title"></h3>
+                                                    <p class="text-xs text-stone-400 line-clamp-2 leading-relaxed" x-text="subSpot.desc"></p>
                                                 </div>
                                             </div>
                                         </template>
                                     </div>
                                 </template>
-
-                                <!-- Normal Card -->
                                 <template x-if="!spot.type">
-                                    <div @click="openModal(spot)" 
-                                         class="float-card p-2 flex gap-4 relative overflow-hidden group cursor-pointer h-26 hover:opacity-95 transition-opacity">
-                                        
-                                        <!-- Color Stripe -->
-                                        <div class="absolute left-0 top-0 bottom-0 w-1" :class="spot.colorClass ? spot.colorClass.replace('border-l-4', 'bg') : 'bg-gray-200'"></div>
-                                        
-                                        <!-- Content Centered -->
+                                    <div @click="openModal(spot)" class="float-card p-2 flex gap-4 relative overflow-hidden group cursor-pointer h-26 hover:shadow-md transition-shadow">
+                                        <div class="absolute left-0 top-0 bottom-0 w-1" :class="spot.colorClass ? spot.colorClass.replace('border-l-4', 'bg') : 'bg-stone-300'"></div>
                                         <div class="flex-1 flex flex-col justify-center items-center text-center w-full py-1">
-                                            
-                                            <!-- REMOVED Time Display -->
-
-                                            <!-- Title (Unified Font Size: text-lg) -->
-                                            <h3 class="font-fangsong font-bold text-slate-800 text-lg leading-tight mb-1 line-clamp-1" x-text="spot.title"></h3>
-                                            
-                                            <!-- Desc (Unified Font Size: text-xs) -->
-                                            <p class="text-xs text-slate-500 mb-1 line-clamp-2 leading-relaxed font-light" x-text="spot.desc"></p>
+                                            <h3 class="font-fangsong font-bold text-stone-700 text-lg leading-tight mb-1 line-clamp-1" x-text="spot.title"></h3>
+                                            <p class="text-xs text-stone-400 mb-1 line-clamp-2 leading-relaxed font-light" x-text="spot.desc"></p>
                                         </div>
                                     </div>
                                 </template>
-
                             </div>
                         </div>
                     </template>
                 </div>
             </div>
         </div>
-
-        <!-- ===== WALLET TAB: Content ===== -->
-        <!-- Dark mode bg -->
-        <main class="flex-1 bg-[#121212] relative z-10 scrollable-content p-6 pt-12" x-show="activeTab === 'wallet'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
-            <h2 class="text-xl font-bold text-white mb-6">記帳小幫手</h2>
-            
-            <!-- Total Card (Dark card for contrast) -->
-            <div class="bg-[#1e1e1e] text-white rounded-2xl p-6 mb-8 relative overflow-hidden border border-white/10" 
-                 style="box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);">
-                <div class="absolute -top-10 -right-10 w-32 h-32 bg-gray-600 rounded-full blur-3xl opacity-20"></div>
+        
+        <!-- Wallet & Modals (Updated colors) -->
+        <main class="flex-1 bg-[#e2ded3] relative z-10 scrollable-content p-6 pt-12" x-show="activeTab === 'wallet'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+             <h2 class="text-xl font-bold text-stone-700 mb-6">記帳小幫手</h2>
+             <div class="bg-gradient-to-br from-rose-100 to-pink-200 text-stone-700 rounded-2xl p-6 mb-8 relative overflow-hidden shadow-lg">
                 <div class="flex justify-between items-start mb-4">
-                    <p class="text-xs text-gray-400 font-medium">總支出 (日幣)</p>
-                    <span class="text-[10px] bg-black/40 border border-white/10 px-2 py-1 rounded text-gray-300">匯率 0.20</span>
+                    <p class="text-xs text-stone-500 font-medium">總支出 (日幣)</p>
+                    <span class="text-[10px] bg-white/50 border border-white/20 px-2 py-1 rounded text-stone-600">匯率 0.20</span>
                 </div>
-                <h3 class="text-3xl font-bold tracking-tight mb-1">¥ <span x-text="totalExpenseJPY.toLocaleString()"></span></h3>
-                <p class="text-gray-400 text-xs font-medium mb-6">
-                    ≈ NT$ <span x-text="Math.round(totalExpenseJPY * exchangeRate).toLocaleString()"></span>
-                </p>
-                <!-- Add Button (White) -->
-                <button @click="showAddExpense = true" class="w-full bg-white text-black py-3 rounded-xl text-xs font-bold hover:bg-gray-200 active:scale-95 transition-all flex items-center justify-center shadow-lg">
+                <h3 class="text-3xl font-bold tracking-tight mb-1 text-rose-800">¥ <span x-text="totalExpenseJPY.toLocaleString()"></span></h3>
+                <p class="text-stone-500 text-xs font-medium mb-6">≈ NT$ <span x-text="Math.round(totalExpenseJPY * exchangeRate).toLocaleString()"></span></p>
+                <button @click="showAddExpense = true" class="w-full bg-white text-rose-500 py-3 rounded-xl text-xs font-bold hover:bg-rose-50 active:scale-95 transition-all flex items-center justify-center shadow-sm">
                     <i class="fas fa-plus mr-2"></i> 記一筆
                 </button>
             </div>
-
             <!-- Expense List -->
-            <div class="mb-3 flex justify-between items-center">
-                <h3 class="text-sm font-bold text-gray-300">最近紀錄</h3>
-                <span class="text-[10px] text-gray-500" x-text="expenses.length + ' 筆'"></span>
-            </div>
-
-            <!-- Expense Items Container (White Card) -->
-            <div class="float-card p-1 min-h-[200px]">
-                <ul class="divide-y divide-slate-100">
+             <div class="mb-3 flex justify-between items-center"><h3 class="text-sm font-bold text-stone-600">最近紀錄</h3><span class="text-[10px] text-stone-400" x-text="expenses.length + ' 筆'"></span></div>
+             <div class="float-card p-1 min-h-[200px]">
+                <ul class="divide-y divide-stone-200">
                     <template x-for="(item, index) in expenses" :key="index">
-                        <li class="flex justify-between items-center p-3 hover:bg-slate-50 transition-colors rounded-xl">
+                        <li class="flex justify-between items-center p-3 hover:bg-rose-50/50 transition-colors rounded-xl group relative pr-8">
                             <div class="flex items-center gap-3">
-                                <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm shadow-sm"
-                                     :class="getCategory(item.category).color">
-                                    <i :class="getCategory(item.category).icon"></i>
-                                </div>
-                                <div>
-                                    <div class="flex items-center gap-2 mb-0.5">
-                                        <p class="font-bold text-slate-700 text-xs" x-text="item.name"></p>
-                                        <span x-show="item.paymentMethod === 'card'" class="text-[9px] text-slate-400 bg-slate-100 px-1 rounded">
-                                            <i class="fas fa-credit-card"></i>
-                                        </span>
-                                    </div>
-                                    <p class="text-[9px] text-slate-400 font-medium" x-text="item.date"></p>
-                                </div>
+                                <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm shadow-sm" :class="getCategory(item.category).color"><i :class="getCategory(item.category).icon"></i></div>
+                                <div><div class="flex items-center gap-2 mb-0.5"><p class="font-bold text-stone-700 text-xs" x-text="item.name"></p></div><p class="text-[9px] text-stone-400 font-medium" x-text="item.date"></p></div>
                             </div>
-                            <div class="text-right">
-                                <div class="font-bold text-slate-800 text-xs">-¥<span x-text="item.amount.toLocaleString()"></span></div>
-                                <div class="text-[9px] text-slate-400">NT$<span x-text="item.amountTWD.toLocaleString()"></span></div>
-                            </div>
+                            <div class="text-right"><div class="font-bold text-stone-700 text-xs">-¥<span x-text="item.amount.toLocaleString()"></span></div><div class="text-[9px] text-stone-400">NT$<span x-text="item.amountTWD.toLocaleString()"></span></div></div>
+                            <!-- Delete Button -->
+                            <button @click.stop="deleteExpense(item.id)" class="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-red-400 p-2 transition-colors">
+                                <i class="fas fa-trash-alt text-xs"></i>
+                            </button>
                         </li>
                     </template>
-                    <li x-show="expenses.length === 0" class="py-10 flex flex-col items-center justify-center text-slate-300">
-                        <i class="fas fa-receipt text-2xl mb-2 opacity-50"></i>
-                        <span class="text-[10px]">尚無支出</span>
-                    </li>
                 </ul>
             </div>
         </main>
-
-        <!-- BOTTOM NAVIGATION BAR -->
+        
+        <!-- Bottom Nav -->
         <nav class="absolute bottom-0 w-full z-40 px-6 pb-8 pt-4 pointer-events-none" x-show="activeTab !== 'cover'">
-            <div class="pointer-events-auto bg-[#1e1e1e]/90 backdrop-blur-md rounded-full h-16 flex items-center justify-around shadow-2xl border border-white/10 mx-auto max-w-[280px]">
-                <button @click="activeTab = 'home'" :class="{'text-white': activeTab === 'home', 'text-gray-500 hover:text-gray-300': activeTab !== 'home'}" class="flex flex-col items-center justify-center w-full h-full transition-colors group">
-                    <i class="fas fa-compass text-xl mb-1 transition-transform group-active:scale-90"></i>
-                    <span class="text-[9px] font-bold tracking-wider">行程</span>
-                </button>
-                <div class="w-px h-6 bg-white/10"></div>
-                <button @click="activeTab = 'wallet'" :class="{'text-white': activeTab === 'wallet', 'text-gray-500 hover:text-gray-300': activeTab !== 'wallet'}" class="flex flex-col items-center justify-center w-full h-full transition-colors group">
-                    <i class="fas fa-wallet text-xl mb-1 transition-transform group-active:scale-90"></i>
-                    <span class="text-[9px] font-bold tracking-wider">記帳</span>
-                </button>
+            <div class="pointer-events-auto bg-white/90 backdrop-blur-md rounded-full h-16 flex items-center justify-around shadow-xl border border-stone-100 mx-auto max-w-[280px]">
+                <button @click="activeTab = 'home'" :class="{'text-rose-500': activeTab === 'home', 'text-stone-300 hover:text-stone-400': activeTab !== 'home'}" class="flex flex-col items-center justify-center w-full h-full transition-colors group"><i class="fas fa-compass text-xl mb-1 transition-transform group-active:scale-90"></i><span class="text-[9px] font-bold tracking-wider">行程</span></button>
+                <div class="w-px h-6 bg-stone-100"></div>
+                <button @click="activeTab = 'wallet'" :class="{'text-rose-500': activeTab === 'wallet', 'text-stone-300 hover:text-stone-400': activeTab !== 'wallet'}" class="flex flex-col items-center justify-center w-full h-full transition-colors group"><i class="fas fa-wallet text-xl mb-1 transition-transform group-active:scale-90"></i><span class="text-[9px] font-bold tracking-wider">記帳</span></button>
             </div>
         </nav>
 
-        <!-- MODALS -->
-        
-        <!-- 1. FOOD IMAGE MODAL (Japanese Washi Style) -->
-        <div x-show="showFoodModal" class="fixed inset-0 z-[60] flex items-center justify-center px-6">
-            <div x-show="showFoodModal" @click="closeFoodModal()" x-transition.opacity class="absolute inset-0 bg-black/80 backdrop-blur-md"></div>
-            
-            <!-- Washi Style Modal -->
-            <div x-show="showFoodModal" 
-                 x-transition:enter="transition transform ease-out duration-300" 
-                 x-transition:enter-start="scale-90 opacity-0" 
-                 x-transition:enter-end="scale-100 opacity-100"
-                 x-transition:leave="transition transform ease-in duration-200" 
-                 x-transition:leave-start="scale-100 opacity-100" 
-                 x-transition:leave-end="scale-90 opacity-0"
-                 class="relative z-[70] w-full max-w-sm washi-paper rounded-2xl overflow-hidden shadow-2xl border-t-4 border-[#d4af37]">
-                
-                <template x-if="selectedFood">
-                    <div class="p-6 relative">
-                        <!-- Close Button (Top Right corner of the modal, subtle) -->
-                        <button @click="closeFoodModal()" class="absolute top-2 right-2 w-8 h-8 text-stone-400 hover:text-stone-600 flex items-center justify-center z-20 active:scale-90 transition-transform">
-                            <i class="fas fa-times text-lg"></i>
-                        </button>
-
-                        <!-- Photo Frame Style (Padding around image, white border, shadow) -->
-                        <div class="relative w-full rounded-lg overflow-hidden shadow-lg border-4 border-white bg-stone-200 transform rotate-1">
-                             <!-- Aspect Ratio 4:3 for better food presentation -->
-                             <div class="aspect-[4/3]">
-                                <img :src="selectedFood.img" class="w-full h-full object-cover" referrerpolicy="no-referrer" onerror="this.src='https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=600'">
-                             </div>
-                             <!-- Slight inner shine overlay for glossy photo look -->
-                             <div class="absolute inset-0 bg-gradient-to-tr from-transparent to-white/10 pointer-events-none"></div>
-                        </div>
-
-                        <div class="mt-6 text-center">
-                            <h3 class="font-bold text-xl text-stone-800 font-fangsong" x-text="selectedFood.name"></h3>
-                            <div class="w-12 h-1 bg-gradient-to-r from-[#bf953f] to-[#aa771c] mx-auto mt-3 mb-2 rounded-full"></div>
-                            <p class="text-[10px] text-stone-400 mt-1">點擊背景即可關閉</p>
-                        </div>
-                    </div>
-                </template>
-            </div>
-        </div>
-
-        <!-- 2. Add Expense Sheet (Washi Style) -->
-        <div x-show="showAddExpense" class="absolute inset-0 z-50 flex items-end justify-center pointer-events-none">
-            <div x-show="showAddExpense" @click="showAddExpense = false" x-transition.opacity class="absolute inset-0 bg-black/60 pointer-events-auto backdrop-blur-sm"></div>
-            <!-- Washi Style -->
-            <div x-show="showAddExpense" x-transition:enter="transition transform ease-out duration-300" x-transition:enter-start="translate-y-full" x-transition:enter-end="translate-y-0" x-transition:leave="transition transform ease-in duration-200" x-transition:leave-start="translate-y-0" x-transition:leave-end="translate-y-full" class="washi-paper w-full rounded-t-[2rem] p-6 pointer-events-auto pb-10 shadow-2xl relative border-t-4 border-[#d4af37]">
-                <div class="w-10 h-1 bg-stone-300 rounded-full mx-auto mb-6"></div>
-                <h3 class="text-xl font-bold mb-4 text-stone-800 font-fangsong">記一筆</h3>
-                <div class="space-y-3">
-                    <input type="text" x-model="newExpense.name" placeholder="項目名稱" class="w-full bg-white border border-stone-200 shadow-sm rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-stone-400 outline-none text-stone-700 placeholder-stone-400">
-                    <div class="relative">
-                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 font-bold text-sm">¥</span>
-                        <input type="number" x-model="newExpense.amount" placeholder="0" class="w-full bg-white border border-stone-200 shadow-sm rounded-xl p-3 pl-8 text-lg font-bold focus:ring-2 focus:ring-stone-400 outline-none text-stone-800 placeholder-stone-400">
-                        <div class="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] text-stone-400" x-show="newExpense.amount > 0">
-                            ≈ NT$ <span x-text="Math.round(newExpense.amount * exchangeRate).toLocaleString()"></span>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-white p-1 rounded-xl flex shadow-sm border border-stone-200">
-                        <template x-for="method in paymentMethods" :key="method.id">
-                            <button @click="newExpense.paymentMethod = method.id"
-                                    class="flex-1 py-2 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-2"
-                                    :class="newExpense.paymentMethod === method.id ? 'bg-stone-800 text-white shadow-md' : 'text-stone-400 hover:bg-stone-50'">
-                                <i :class="method.icon"></i> <span x-text="method.name"></span>
-                            </button>
-                        </template>
-                    </div>
-
-                    <div class="relative">
-                        <button @click="showCategoryMenu = !showCategoryMenu" class="w-full bg-white shadow-sm border border-stone-200 rounded-xl p-3 flex items-center justify-between text-xs font-bold text-stone-700">
-                            <div class="flex items-center gap-3">
-                                <div class="w-5 h-5 rounded-full flex items-center justify-center text-[10px]" :class="getCategory(newExpense.category).color">
-                                    <i :class="getCategory(newExpense.category).icon"></i>
-                                </div>
-                                <span x-text="getCategory(newExpense.category).name"></span>
-                            </div>
-                            <i class="fas fa-chevron-down text-stone-400"></i>
-                        </button>
-                        <div x-show="showCategoryMenu" @click.away="showCategoryMenu = false" class="absolute bottom-full mb-2 w-full bg-white border border-stone-200 rounded-xl shadow-xl max-h-40 overflow-y-auto z-20">
-                            <template x-for="cat in categories" :key="cat.id">
-                                <button @click="newExpense.category = cat.id; showCategoryMenu = false" class="w-full p-2 flex items-center gap-3 hover:bg-stone-50 border-b border-stone-100 last:border-0 text-stone-700">
-                                    <div class="w-5 h-5 rounded-full flex items-center justify-center text-[10px]" :class="cat.color"><i :class="cat.icon"></i></div>
-                                    <span class="text-xs font-bold" x-text="cat.name"></span>
-                                </button>
-                            </template>
-                        </div>
-                    </div>
-
-                    <button @click="addExpense()" class="w-full bg-stone-800 text-white py-3 rounded-xl font-bold shadow-lg mt-2 active:scale-95 transition-transform text-sm hover:bg-stone-700">確認</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 3. Detail Sheet (Japanese Washi Style) -->
+        <!-- Modals (Washi Style Light) -->
         <div x-show="showDetailModal" class="fixed inset-0 z-50 flex items-end justify-center">
-            <div x-show="showDetailModal" @click="closeModal()" x-transition.opacity class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
-            
-            <!-- Apply Washi Paper class here -->
-            <div x-show="showDetailModal" 
-                 x-transition:enter="transition transform ease-out duration-300" 
-                 x-transition:enter-start="translate-y-full" 
-                 x-transition:enter-end="translate-y-0" 
-                 x-transition:leave="transition transform ease-in duration-200" 
-                 x-transition:leave-start="translate-y-0" 
-                 x-transition:leave-end="translate-y-full" 
-                 class="washi-paper w-full h-[75vh] rounded-t-[2rem] shadow-2xl flex flex-col overflow-hidden relative z-50 max-w-[480px] border-t-4 border-[#d4af37]">
-                
-                <!-- Modal Header -->
+            <div x-show="showDetailModal" @click="closeModal()" x-transition.opacity class="absolute inset-0 bg-stone-800/30 backdrop-blur-sm"></div>
+            <div x-show="showDetailModal" x-transition:enter="transition transform ease-out duration-300" x-transition:enter-start="translate-y-full" x-transition:enter-end="translate-y-0" x-transition:leave="transition transform ease-in duration-200" x-transition:leave-start="translate-y-0" x-transition:leave-end="translate-y-full" class="washi-paper w-full h-[75vh] rounded-t-[2rem] shadow-2xl flex flex-col overflow-hidden relative z-50 max-w-[480px] border-t-4 border-[#d4af37]">
                 <div class="p-6 pb-0 z-10 flex-shrink-0 bg-transparent">
                     <div class="w-10 h-1 bg-stone-300 rounded-full mx-auto mb-6"></div>
                     <template x-if="selectedEvent">
                         <div class="flex justify-between items-start">
-                            <div>
-                                <span class="text-[10px] font-bold text-stone-500 bg-stone-200/50 px-2 py-1 rounded mb-2 inline-block shadow-sm border border-stone-300/50" x-text="selectedEvent.time"></span>
-                                <!-- Ink Style Title -->
-                                <h2 class="text-2xl font-bold text-stone-800 font-fangsong tracking-wide" x-text="selectedEvent.title"></h2>
-                            </div>
-                            <button @click="closeModal()" class="w-8 h-8 rounded-full bg-white flex items-center justify-center text-stone-400 hover:bg-stone-100 transition-colors shadow-sm border border-stone-200"><i class="fas fa-times"></i></button>
+                            <div><span class="text-[10px] font-bold text-stone-500 bg-white/50 px-2 py-1 rounded mb-2 inline-block shadow-sm border border-stone-200" x-text="selectedEvent.time"></span><h2 class="text-2xl font-bold text-stone-800 font-fangsong tracking-wide" x-text="selectedEvent.title"></h2></div>
+                            <button @click="closeModal()" class="w-8 h-8 rounded-full bg-white flex items-center justify-center text-stone-400 hover:bg-stone-50 transition-colors shadow-sm border border-stone-200"><i class="fas fa-times"></i></button>
                         </div>
                     </template>
                 </div>
-                
-                <!-- Modal Content (Scrollable) -->
                 <div class="overflow-y-auto p-6 flex-1 pb-24"> 
                     <template x-if="selectedEvent">
                         <div class="space-y-6">
-                            <!-- Image Area -->
-                            <!-- Removed borders and shadow, added blending overlay -->
-                            <div class="w-full bg-transparent overflow-hidden relative flex-shrink-0"
-                                 :class="selectedEvent.detailImages ? '' : 'h-48'">
-                                
-                                <!-- Blending Overlay (Fade out edges) -->
+                            <div class="w-full bg-stone-100 rounded-2xl overflow-hidden relative flex-shrink-0 shadow-md border border-stone-200" :class="selectedEvent.detailImages ? '' : 'h-48'">
                                 <div class="absolute inset-0 img-mask-fade z-10 pointer-events-none"></div>
-                                
-                                <!-- Mode 1: Single Image (Default) -->
-                                <template x-if="!selectedEvent.detailImages">
-                                    <img :src="selectedEvent.img" class="w-full h-full object-cover img-mask-fade" onerror="this.src='https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=1000&auto=format&fit=crop'" referrerpolicy="no-referrer">
-                                </template>
-
-                                <!-- Mode 2: Stacked Images (Merged Effect) -->
-                                <template x-if="selectedEvent.detailImages">
-                                    <div class="flex flex-col">
-                                        <template x-for="imgSrc in selectedEvent.detailImages">
-                                            <img :src="imgSrc" class="w-full h-auto block img-mask-fade" onerror="this.src='https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=1000&auto=format&fit=crop'" referrerpolicy="no-referrer">
-                                        </template>
-                                    </div>
-                                </template>
+                                <template x-if="!selectedEvent.detailImages"><img :src="selectedEvent.img" class="w-full h-full object-cover img-mask-fade" onerror="this.src='https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=1000&auto=format&fit=crop'" referrerpolicy="no-referrer"></template>
+                                <template x-if="selectedEvent.detailImages"><div class="flex flex-col"><template x-for="imgSrc in selectedEvent.detailImages"><img :src="imgSrc" class="w-full h-auto block img-mask-fade" onerror="this.src='https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=1000&auto=format&fit=crop'" referrerpolicy="no-referrer"></template></div></template>
                             </div>
-                            
-                            <!-- Highlights -->
-                            <!-- Inner Card style: White paper patch on Washi bg -->
                             <div class="p-4 flex-shrink-0 bg-white/60 border border-stone-200 rounded-xl shadow-sm">
                                 <h3 class="font-bold text-stone-800 mb-2 text-xs flex items-center uppercase tracking-wide opacity-80 font-fangsong border-b border-stone-200 pb-1 w-fit gold-text"><i class="fas fa-lightbulb text-[#d4af37] mr-2"></i> 亮點</h3>
                                 <p class="text-sm text-stone-600 leading-relaxed font-medium" x-text="selectedEvent.highlights"></p>
                             </div>
-                            
-                            <!-- Food (Updated: Clickable Items) -->
                             <div x-show="selectedEvent.food" class="flex-shrink-0">
                                 <h3 class="font-bold text-stone-800 mb-3 text-xs flex items-center uppercase tracking-wide opacity-80 font-fangsong border-b border-stone-200 pb-1 w-fit gold-text"><i class="fas fa-utensils text-[#d4af37] mr-2"></i> 推薦美食 (點擊看照片)</h3>
-                                <div class="grid gap-2">
-                                    <template x-for="food in selectedEvent.foodList" :key="food.name">
-                                        <!-- Paper Button Style -->
-                                        <button @click="openFoodModal(food)" class="flex items-center p-3 bg-white border border-stone-200 rounded-xl shadow-sm hover:shadow-md hover:bg-[#fdfbf7] transition-all text-left w-full active:scale-98 group">
-                                            <div class="w-8 h-8 rounded-lg bg-[#fdfbf7] text-[#d4af37] border border-[#d4af37]/30 flex items-center justify-center mr-3 flex-shrink-0 group-hover:bg-[#d4af37] group-hover:text-white transition-colors">
-                                                <i class="fas fa-camera text-xs"></i>
-                                            </div>
-                                            <span class="text-xs font-bold text-stone-700 font-fangsong" x-text="food.name"></span>
-                                        </button>
-                                    </template>
-                                </div>
+                                <div class="grid gap-2"><template x-for="food in selectedEvent.foodList" :key="food.name"><button @click="openFoodModal(food)" class="flex items-center p-3 bg-white border border-stone-200 rounded-xl shadow-sm hover:shadow-md hover:bg-[#fff5f7] transition-all text-left w-full active:scale-98 group"><div class="w-8 h-8 rounded-lg bg-[#fff5f7] text-rose-400 border border-rose-100 flex items-center justify-center mr-3 flex-shrink-0 group-hover:bg-rose-400 group-hover:text-white transition-colors"><i class="fas fa-camera text-xs"></i></div><span class="text-xs font-bold text-stone-700 font-fangsong" x-text="food.name"></span></button></template></div>
                             </div>
-                            
-                            <!-- Tips -->
                             <div x-show="selectedEvent.tips" class="flex-shrink-0">
                                 <h3 class="font-bold text-stone-800 mb-2 text-xs flex items-center uppercase tracking-wide opacity-80 font-fangsong border-b border-stone-200 pb-1 w-fit gold-text"><i class="fas fa-info-circle text-[#d4af37] mr-2"></i> 貼心小提醒</h3>
-                                <!-- Changed x-text to x-html to support highlighting tags -->
                                 <p class="text-xs text-stone-600 leading-relaxed pl-6 border-l-2 border-[#d4af37] ml-1 py-1" x-html="selectedEvent.tips"></p>
                             </div>
-                            
-                            <!-- Navigation Button -->
-                            <div class="pt-4">
-                                <!-- Dark Slate Button -->
-                                <a :href="selectedEvent.navLink ? selectedEvent.navLink : 'https://www.google.com/maps/search/?api=1&query=' + (selectedEvent.location || selectedEvent.title)" target="_blank" class="flex items-center justify-center w-full bg-slate-800 text-white py-4 rounded-xl font-bold shadow-lg shadow-slate-400/50 hover:bg-slate-700 active:scale-95 transition-all text-sm flex-shrink-0 border border-slate-600">
-                                    <i class="fas fa-location-arrow mr-2"></i> 導航去
-                                </a>
-                            </div>
+                            <div class="pt-4"><a :href="selectedEvent.navLink ? selectedEvent.navLink : 'https://www.google.com/maps/search/?api=1&query=' + (selectedEvent.location || selectedEvent.title)" target="_blank" class="flex items-center justify-center w-full bg-rose-400 text-white py-4 rounded-xl font-bold shadow-lg shadow-rose-200 hover:bg-rose-500 active:scale-95 transition-all text-sm flex-shrink-0 border border-rose-300"><i class="fas fa-location-arrow mr-2"></i> 導航去</a></div>
                         </div>
                     </template>
                 </div>
             </div>
         </div>
 
-    </div> <!-- End App Frame -->
+        <div x-show="showFoodModal" class="fixed inset-0 z-[60] flex items-center justify-center px-6">
+            <div x-show="showFoodModal" @click="closeFoodModal()" x-transition.opacity class="absolute inset-0 bg-stone-800/40 backdrop-blur-md"></div>
+            <div x-show="showFoodModal" x-transition:enter="transition transform ease-out duration-300" x-transition:enter-start="scale-90 opacity-0" x-transition:enter-end="scale-100 opacity-100" x-transition:leave="transition transform ease-in duration-200" x-transition:leave-start="scale-100 opacity-100" x-transition:leave-end="scale-90 opacity-0" class="relative z-[70] w-full max-w-sm washi-paper rounded-2xl overflow-hidden shadow-2xl border-t-4 border-[#d4af37]">
+                <template x-if="selectedFood">
+                    <div class="p-6 relative"><button @click="closeFoodModal()" class="absolute top-2 right-2 w-8 h-8 text-stone-400 hover:text-stone-600 flex items-center justify-center z-20 active:scale-90 transition-transform"><i class="fas fa-times text-lg"></i></button><div class="relative w-full rounded-lg overflow-hidden shadow-lg border-4 border-white bg-stone-200 transform rotate-1"><div class="aspect-[4/3]"><img :src="selectedFood.img" class="w-full h-full object-cover" referrerpolicy="no-referrer" onerror="this.src='https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=600'"></div><div class="absolute inset-0 bg-gradient-to-tr from-transparent to-white/10 pointer-events-none"></div></div><div class="mt-6 text-center"><h3 class="font-bold text-xl text-stone-800 font-fangsong" x-text="selectedFood.name"></h3><div class="w-12 h-1 bg-gradient-to-r from-[#bf953f] to-[#aa771c] mx-auto mt-3 mb-2 rounded-full"></div><p class="text-[10px] text-stone-400 mt-1">點擊背景即可關閉</p></div></div>
+                </template>
+            </div>
+        </div>
 
-    <!-- Sakura Animation Script -->
+        <div x-show="showAddExpense" class="absolute inset-0 z-50 flex items-end justify-center pointer-events-none">
+             <div x-show="showAddExpense" @click="showAddExpense = false" x-transition.opacity class="absolute inset-0 bg-stone-800/30 pointer-events-auto backdrop-blur-sm"></div>
+             <div x-show="showAddExpense" x-transition:enter="transition transform ease-out duration-300" x-transition:enter-start="translate-y-full" x-transition:enter-end="translate-y-0" x-transition:leave="transition transform ease-in duration-200" x-transition:leave-start="translate-y-0" x-transition:leave-end="translate-y-full" class="washi-paper w-full rounded-t-[2rem] p-6 pointer-events-auto pb-10 shadow-2xl relative border-t-4 border-[#d4af37]">
+                <div class="w-10 h-1 bg-stone-300 rounded-full mx-auto mb-6"></div><h3 class="text-xl font-bold mb-4 text-stone-800 font-fangsong">記一筆</h3>
+                <div class="space-y-3"><input type="text" x-model="newExpense.name" placeholder="項目名稱" class="w-full bg-white border border-stone-200 shadow-sm rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-stone-400 outline-none text-stone-700 placeholder-stone-400"><div class="relative"><span class="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 font-bold text-sm">¥</span><input type="number" x-model="newExpense.amount" placeholder="0" class="w-full bg-white border border-stone-200 shadow-sm rounded-xl p-3 pl-8 text-lg font-bold focus:ring-2 focus:ring-stone-400 outline-none text-stone-800 placeholder-stone-400"><div class="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] text-stone-400" x-show="newExpense.amount > 0">≈ NT$ <span x-text="Math.round(newExpense.amount * exchangeRate).toLocaleString()"></span></div></div><div class="bg-white p-1 rounded-xl flex shadow-sm border border-stone-200"><template x-for="method in paymentMethods" :key="method.id"><button @click="newExpense.paymentMethod = method.id" class="flex-1 py-2 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-2" :class="newExpense.paymentMethod === method.id ? 'bg-stone-800 text-white shadow-md' : 'text-stone-400 hover:bg-stone-50'"><i :class="method.icon"></i> <span x-text="method.name"></span></button></template></div><div class="relative"><button @click="showCategoryMenu = !showCategoryMenu" class="w-full bg-white shadow-sm border border-stone-200 rounded-xl p-3 flex items-center justify-between text-xs font-bold text-stone-700"><div class="flex items-center gap-3"><div class="w-5 h-5 rounded-full flex items-center justify-center text-[10px]" :class="getCategory(newExpense.category).color"><i :class="getCategory(newExpense.category).icon"></i></div><span x-text="getCategory(newExpense.category).name"></span></div><i class="fas fa-chevron-down text-stone-400"></i></button><div x-show="showCategoryMenu" @click.away="showCategoryMenu = false" class="absolute bottom-full mb-2 w-full bg-white border border-stone-200 rounded-xl shadow-xl max-h-40 overflow-y-auto z-20"><template x-for="cat in categories" :key="cat.id"><button @click="newExpense.category = cat.id; showCategoryMenu = false" class="w-full p-2 flex items-center gap-3 hover:bg-stone-50 border-b border-stone-100 last:border-0 text-stone-700"><div class="w-5 h-5 rounded-full flex items-center justify-center text-[10px]" :class="cat.color"><i :class="cat.icon"></i></div><span class="text-xs font-bold" x-text="cat.name"></span></button></template></div></div><button @click="addExpense()" class="w-full bg-rose-500 text-white py-3 rounded-xl font-bold shadow-lg mt-2 active:scale-95 transition-transform text-sm hover:bg-rose-600">確認</button></div>
+             </div>
+        </div>
+
+    </div>
+
+    <!-- Sakura Animation Script (Updated colors for light theme) -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const canvas = document.getElementById('sakura-canvas');
             const ctx = canvas.getContext('2d');
-            
             let width, height;
-            
             function resize() {
                 const rect = canvas.parentElement.getBoundingClientRect();
-                width = rect.width;
-                height = rect.height;
-                canvas.width = width;
-                canvas.height = height;
+                width = rect.width; height = rect.height; canvas.width = width; canvas.height = height;
             }
-            
             window.addEventListener('resize', resize);
             resize();
-
             const petals = [];
             const totalPetals = 30;
 
             class Petal {
-                constructor() {
-                    this.reset();
-                }
-
+                constructor() { this.reset(); }
                 reset() {
-                    this.x = Math.random() * width;
-                    this.y = Math.random() * -height; 
-                    
+                    this.x = Math.random() * width; this.y = Math.random() * -height;
                     this.type = Math.random() > 0.8 ? 'flower' : 'petal';
                     this.size = this.type === 'flower' ? Math.random() * 2 + 6 : Math.random() * 3 + 7;
-                    
-                    // Randomly assign color: 30% Peach (Darker), 70% Light Pink
                     this.colorType = Math.random() > 0.7 ? 'peach' : 'light';
-
-                    this.speedX = Math.random() * 1 - 0.5;
-                    this.speedY = Math.random() * 1.2 + 0.8;
-                    this.rotation = Math.random() * 360;
-                    this.rotationSpeed = Math.random() * 2 - 1;
+                    this.speedX = Math.random() * 1 - 0.5; this.speedY = Math.random() * 1.2 + 0.8;
+                    this.rotation = Math.random() * 360; this.rotationSpeed = Math.random() * 2 - 1;
                     this.opacity = Math.random() * 0.4 + 0.5;
                 }
-
                 update() {
-                    this.x += this.speedX + Math.sin(this.y * 0.005) * 0.5;
-                    this.y += this.speedY;
-                    this.rotation += this.rotationSpeed;
-
-                    if (this.y > height + 20) {
-                        this.reset();
-                    }
+                    this.x += this.speedX + Math.sin(this.y * 0.005) * 0.5; this.y += this.speedY; this.rotation += this.rotationSpeed;
+                    if (this.y > height + 20) { this.reset(); }
                 }
-
                 drawPetalPath(s) {
-                    ctx.beginPath();
-                    ctx.moveTo(0, 0); 
-                    ctx.bezierCurveTo(-s, -s * 0.5, -s * 0.5, -s * 1.5, 0, -s); 
-                    ctx.bezierCurveTo(s * 0.5, -s * 1.5, s, -s * 0.5, 0, 0);
-                    ctx.closePath();
+                    ctx.beginPath(); ctx.moveTo(0, 0); ctx.bezierCurveTo(-s, -s * 0.5, -s * 0.5, -s * 1.5, 0, -s); ctx.bezierCurveTo(s * 0.5, -s * 1.5, s, -s * 0.5, 0, 0); ctx.closePath();
                 }
-
                 draw() {
-                    ctx.save();
-                    ctx.translate(this.x, this.y);
-                    ctx.rotate(this.rotation * Math.PI / 180);
-                    ctx.globalAlpha = this.opacity;
-                    
+                    ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.rotation * Math.PI / 180); ctx.globalAlpha = this.opacity;
                     let gradient = ctx.createLinearGradient(-this.size, -this.size, 0, this.size);
-                    
+                    // Darker pinks for light background visibility
                     if (this.colorType === 'peach') {
-                        // Peach / Darker Pink (New)
-                        gradient.addColorStop(0, "rgba(255, 218, 233, 1)"); 
-                        gradient.addColorStop(1, "rgba(255, 105, 140, 1)"); 
+                        gradient.addColorStop(0, "rgba(255, 182, 193, 1)"); gradient.addColorStop(1, "rgba(255, 105, 180, 1)"); 
                     } else {
-                        // Light Pink / White (Original) - slightly tweaked for visibility on dark
-                        gradient.addColorStop(0, "rgba(255, 245, 250, 1)"); 
-                        gradient.addColorStop(1, "rgba(255, 200, 210, 1)"); 
+                        gradient.addColorStop(0, "rgba(255, 240, 245, 1)"); gradient.addColorStop(1, "rgba(255, 192, 203, 1)"); 
                     }
-                    
                     ctx.fillStyle = gradient;
-
                     if (this.type === 'flower') {
                         for (let i = 0; i < 5; i++) {
-                            ctx.save();
-                            ctx.rotate((72 * i) * Math.PI / 180);
-                            ctx.translate(0, -this.size * 0.2); 
-                            this.drawPetalPath(this.size);
-                            ctx.fill();
-                            ctx.restore();
+                            ctx.save(); ctx.rotate((72 * i) * Math.PI / 180); ctx.translate(0, -this.size * 0.2); this.drawPetalPath(this.size); ctx.fill(); ctx.restore();
                         }
-                        ctx.beginPath();
-                        ctx.arc(0, 0, this.size * 0.25, 0, Math.PI * 2);
-                        // Center color also adjusts slightly
-                        ctx.fillStyle = this.colorType === 'peach' ? 'rgba(255, 255, 200, 0.9)' : 'rgba(255, 255, 220, 0.9)';
-                        ctx.fill();
+                        ctx.beginPath(); ctx.arc(0, 0, this.size * 0.25, 0, Math.PI * 2); ctx.fillStyle = this.colorType === 'peach' ? 'rgba(255, 255, 150, 0.9)' : 'rgba(255, 255, 200, 0.9)'; ctx.fill();
                     } else {
-                        this.drawPetalPath(this.size);
-                        ctx.fill();
+                        this.drawPetalPath(this.size); ctx.fill();
                     }
-                    
                     ctx.restore();
                 }
             }
-
-            for (let i = 0; i < totalPetals; i++) {
-                petals.push(new Petal());
-            }
-
-            function animate() {
-                ctx.clearRect(0, 0, width, height);
-                petals.forEach(petal => {
-                    petal.update();
-                    petal.draw();
-                });
-                requestAnimationFrame(animate);
-            }
-
+            for (let i = 0; i < totalPetals; i++) { petals.push(new Petal()); }
+            function animate() { ctx.clearRect(0, 0, width, height); petals.forEach(petal => { petal.update(); petal.draw(); }); requestAnimationFrame(animate); }
             animate();
         });
     </script>
