@@ -8,6 +8,8 @@
     <link rel="apple-touch-icon" sizes="180x180" href="https://images.unsplash.com/photo-1616053641775-d14457e5b61e?q=80&w=192&h=192&auto=format&fit=crop">
     <link rel="icon" type="image/png" sizes="32x32" href="https://images.unsplash.com/photo-1616053641775-d14457e5b61e?q=80&w=32&h=32&auto=format&fit=crop">
     <meta name="apple-mobile-web-app-title" content="2026京阪旅">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
     <title>2026 京阪家族旅 (和風版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -20,13 +22,13 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, addDoc, deleteDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Handle potential missing config in local environments
-        let firebaseConfig;
-        try {
-            firebaseConfig = JSON.parse(__firebase_config);
-        } catch (e) {
-            console.warn("Firebase config not found, using placeholder.");
-            firebaseConfig = { apiKey: "placeholder", authDomain: "placeholder", projectId: "placeholder" };
+        let firebaseConfig = { apiKey: "placeholder", authDomain: "placeholder", projectId: "placeholder" };
+        if (typeof __firebase_config !== 'undefined') {
+            try {
+                firebaseConfig = JSON.parse(__firebase_config);
+            } catch (e) {
+                console.warn("Firebase config parse error", e);
+            }
         }
 
         const app = initializeApp(firebaseConfig);
@@ -34,7 +36,6 @@
         const db = getFirestore(app);
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-        // Expose Firebase services to global window object for Alpine.js to access
         window.db = db;
         window.auth = auth;
         window.appId = appId;
@@ -48,28 +49,45 @@
         window.onSnapshot = onSnapshot;
         window.query = query;
         window.orderBy = orderBy;
+        window.firebaseReady = true;
     </script>
     
     <!-- App Logic -->
     <script>
         function appData() {
             return {
+                // ================= PROPERTIES =================
                 activeTab: 'cover',
                 selectedDay: 0,
                 showDetailModal: false,
                 selectedEvent: null,
-                
-                // Food Modal State
                 showFoodModal: false,
                 selectedFood: null,
-
                 showAddExpense: false,
                 showCategoryMenu: false,
-                
-                // Exchange Rate
                 exchangeRate: 0.20,
+                
+                // Firebase Data
+                userId: null,
+                expenses: [], 
+                newExpense: { name: '', amount: '', category: 'food', paymentMethod: 'cash' },
+                totalExpenseJPY: 0,
 
-                // Weather Data
+                // ================= STATIC DATA =================
+                categories: [
+                    { id: 'food', name: '餐飲', icon: 'fas fa-utensils', color: 'bg-orange-100 text-orange-500' },
+                    { id: 'transport', name: '交通', icon: 'fas fa-bus', color: 'bg-blue-100 text-blue-500' },
+                    { id: 'ticket', name: '門票', icon: 'fas fa-ticket-alt', color: 'bg-purple-100 text-purple-500' },
+                    { id: 'shopping', name: '購物', icon: 'fas fa-shopping-bag', color: 'bg-pink-100 text-pink-500' },
+                    { id: 'hotel', name: '住宿', icon: 'fas fa-bed', color: 'bg-indigo-100 text-indigo-500' },
+                    { id: 'other', name: '雜支', icon: 'fas fa-ellipsis-h', color: 'bg-gray-100 text-gray-500' }
+                ],
+
+                paymentMethods: [
+                    { id: 'cash', name: '現金', icon: 'fas fa-money-bill-wave' },
+                    { id: 'card', name: '信用卡', icon: 'fas fa-credit-card' }
+                ],
+
                 weatherForecast: [
                     { time: '現在', icon: 'fas fa-sun text-orange-400', temp: '16°' },
                     { time: '14:00', icon: 'fas fa-cloud-sun text-orange-400', temp: '17°' },
@@ -79,15 +97,14 @@
                     { time: '18:00', icon: 'fas fa-moon text-indigo-400', temp: '13°' },
                 ],
 
-                // Data Structure
                 days: [
                     {
-                        date: '3/18',      // Updated structure
-                        dayOfWeek: 'WED.', // Added day of week (2026/3/18 is Wednesday)
+                        dateLabel: '3/18',
+                        date: '3/18',
+                        dayOfWeek: 'WED.',
                         label: 'D1 大阪',
                         title: '大阪抵達 & 天保山',
                         subtitle: '機場巴士直達 • 港灣夕陽',
-                        // D1 Hero Image (Google Drive Thumbnail)
                         heroImg: 'https://drive.google.com/thumbnail?id=1w6rxk4i3Kzsnew_Th6dksKdL1g4KGn02&sz=w2560', 
                         events: [
                             {
@@ -105,7 +122,6 @@
                                         bgClass: 'bg-sky-50', 
                                         highlight: false,
                                         mustEat: false,
-                                        // Flight Image 1
                                         img: 'https://drive.google.com/thumbnail?id=1xa-a1Ggi7ItOs8THpFWoZ9rCFtZlk3iG&sz=w2560',
                                         highlights: '第一航廈。請提早2.5小時(04:30)抵達機場。',
                                         tips: '檢查：護照、Visit Japan Web QR Code。'
@@ -120,7 +136,6 @@
                                         bgClass: 'bg-sky-50', 
                                         highlight: false,
                                         mustEat: false,
-                                        // Flight Image 2
                                         img: 'https://drive.google.com/thumbnail?id=11RBGZ2k3G2JsvVlxLx_5yuCG3WoA-xcA&sz=w2560',
                                         highlights: '第一航廈/第二航廈(請再確認)。請提早2.5小時(05:10)抵達機場。',
                                         tips: '檢查：護照、Visit Japan Web QR Code。'
@@ -158,7 +173,6 @@
                                 img: 'https://drive.google.com/thumbnail?id=1ED7ASJKsKWwm2RGH_UviVrF8R8y93j9r&sz=w2560',
                                 highlights: '體驗大阪獨有的「免費渡船」過河，享受港灣區的悠閒氛圍。',
                                 food: true,
-                                // Corrected Food Images (Using Wikimedia/Public sources with no-referrer)
                                 foodList: [
                                     { name: '難波美食小巷', img: 'https://drive.google.com/thumbnail?id=1tmoPYfzMtS-IeyH98gmW0zNHevEt3RUp&sz=w2560' },
                                     { name: '自由軒咖哩飯', img: 'https://drive.google.com/thumbnail?id=1o6K3rvwWSeeLvRdV5YjPLe8JlnTgbPZZ&sz=w2560' },
@@ -181,10 +195,9 @@
                                         bgClass: 'bg-purple-50',
                                         highlight: true,
                                         mustEat: true,
-                                        img: 'https://placehold.co/600x400/a855f7/ffffff?text=USJ+Night',
+                                        img: 'https://drive.google.com/thumbnail?id=1dwtfFE8ajAtlqw2RQ4cOgxvKf_lXqtSc&sz=w2560',
                                         highlights: '享受夜晚的魔法世界！晚餐可選擇園區內特色餐廳或 CityWalk 美食。',
                                         food: true,
-                                        // Corrected Food Images
                                         foodList: [
                                             { name: '奇諾比奧咖啡店：瑪利歐漢堡', img: 'https://drive.google.com/thumbnail?id=1SFokEN4kysLNtFbgYSVWMbVmYtDtTLoY&sz=w2560' },
                                             { name: '三根掃帚：烤雞拼盤 & 奶油啤酒', img: 'https://drive.google.com/thumbnail?id=1KsgBNXzj1J-hGJqtZrc0QQK1FVKVyke1&sz=w2560' },
@@ -203,10 +216,9 @@
                                         bgClass: 'bg-orange-50',
                                         highlight: false,
                                         mustEat: true,
-                                        img: 'https://placehold.co/600x400/fbbf24/ffffff?text=Tempozan+Dinner',
+                                        img: 'https://drive.google.com/thumbnail?id=1kLgvn594syj6M4TH7NWcXsfcIhSF9Uyq&sz=w2560',
                                         highlights: '推薦前往「難波美食小巷 (Naniwa Kuishinbo Yokocho)」，重現昭和時代大阪街道的懷舊美食主題樂園。',
                                         food: true,
-                                        // Corrected Food Images
                                         foodList: [
                                             { name: '北極星蛋包飯：大阪蛋包飯創始店', img: 'https://drive.google.com/thumbnail?id=1ytbMEx9WYLV73qlJLv3D0_3ya-diH3s2&sz=w2560' },
                                             { name: '自由軒：名物生蛋咖哩飯', img: 'https://drive.google.com/thumbnail?id=1o6K3rvwWSeeLvRdV5YjPLe8JlnTgbPZZ&sz=w2560' },
@@ -241,45 +253,53 @@
                         label: 'D2 USJ',
                         title: '環球影城 & 姬路城',
                         subtitle: '任天堂世界 • 世界遺產',
-                        // D2 Hero Image (Google Drive Thumbnail)
                         heroImg: 'https://drive.google.com/thumbnail?id=1p-63UUjoG7gfh_jHQZXIjHCta-wMWwPm&sz=w2560', 
                         events: [
                             {
-                                id: 'd2-usj',
-                                time: '07:30',
-                                title: 'USJ 環球影城',
-                                desc: '全日暢玩！超級任天堂世界。',
-                                colorClass: 'border-l-4 border-red-400',
-                                bgClass: 'bg-red-50',
-                                highlight: true,
-                                mustEat: true,
-                                img: 'https://images.unsplash.com/photo-1628151016004-e5557764d732?auto=format&fit=crop&q=80&w=200',
-                                highlights: '進入瑪利歐的遊戲世界！必玩庫巴挑戰書，必買能量手環。',
-                                food: true,
-                                foodList: [
-                                    { name: '奇諾比奧咖啡店：磚塊提拉米蘇', img: 'https://images.unsplash.com/photo-1627483262268-9c96d8aaf10e?q=80&w=600&auto=format&fit=crop' },
-                                    { name: '哈利波特區：奶油啤酒 (Butterbeer)', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Butterbeer!_%2829066680340%29.jpg/640px-Butterbeer!_%2829066680340%29.jpg' },
-                                    { name: '小小兵包子', img: 'https://i.ebayimg.com/images/g/286320077975/s-l500.jpg' }
-                                ],
-                                tips: '記得下載 USJ 官方 APP 抽整理券。'
-                            },
-                            {
-                                id: 'd2-himeji',
-                                time: '10:30',
-                                title: '姬路城 & 神戶',
-                                desc: '世界遺產白鷺城與麵包超人。',
-                                colorClass: 'border-l-4 border-indigo-400',
-                                bgClass: 'bg-indigo-50',
-                                highlight: true,
-                                mustEat: false,
-                                img: 'https://images.unsplash.com/photo-1605218457336-93a8d9a244b7?auto=format&fit=crop&q=80&w=200',
-                                highlights: '日本第一名城，全白外觀超美。下午去麵包超人館適合小朋友放電。',
-                                food: true,
-                                foodList: [
-                                    { name: '神戶牛排 (午餐)', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Kobe_Beef.jpg/640px-Kobe_Beef.jpg' },
-                                    { name: '明石燒 (類似章魚燒但沾高湯)', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Akashiyaki_001.jpg/640px-Akashiyaki_001.jpg' }
-                                ],
-                                tips: '姬路城階梯很陡，要穿好走的鞋子。'
+                                id: 'd2-split-day',
+                                type: 'split',
+                                time: '07:30', 
+                                items: [
+                                    {
+                                        id: 'd2-usj',
+                                        time: '07:30',
+                                        title: 'A組: 環球影城',
+                                        navLink: 'https://maps.app.goo.gl/vQxdETMPSUXarF9G6',
+                                        desc: '全日暢玩！超級任天堂世界。',
+                                        colorClass: 'border-l-4 border-red-400',
+                                        bgClass: 'bg-red-50',
+                                        highlight: true,
+                                        mustEat: true,
+                                        img: 'https://drive.google.com/thumbnail?id=1N9ppJqfQQdqCd5tPfyGnojAbRCL8UBl3&sz=w2560',
+                                        highlights: '進入瑪利歐的遊戲世界！必玩庫巴挑戰書，必買能量手環。',
+                                        food: true,
+                                        foodList: [
+                                            { name: '奇諾比奧咖啡店：磚塊提拉米蘇', img: 'https://drive.google.com/thumbnail?id=1OvNoQjhtin_9NYVWzPrbiba8aTjzkMZ1&sz=w2560' },
+                                            { name: '哈利波特區：奶油啤酒 (Butterbeer)', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Butterbeer!_%2829066680340%29.jpg/640px-Butterbeer!_%2829066680340%29.jpg' },
+                                            { name: '小小兵包子', img: 'https://drive.google.com/thumbnail?id=1bPrQ1BALC0rg_OW-3BsVjNXOnrRRbqgP&sz=w2560' }
+                                        ],
+                                        tips: '記得下載 USJ 官方 APP 抽整理券。'
+                                    },
+                                    {
+                                        id: 'd2-himeji',
+                                        time: '10:30',
+                                        title: 'B組: 姬路神戶',
+                                        navLink: 'https://maps.app.goo.gl/2iWEDJ5Vv4PwFVFR7',
+                                        desc: '世界遺產白鷺城與麵包超人。',
+                                        colorClass: 'border-l-4 border-indigo-400',
+                                        bgClass: 'bg-indigo-50',
+                                        highlight: true,
+                                        mustEat: false,
+                                        img: 'https://drive.google.com/thumbnail?id=1_cjCVriIuJooD-LYOtPn_9wm22rN6yIX&sz=w2560',
+                                        highlights: '日本第一名城，全白外觀超美。下午去麵包超人館適合小朋友放電。',
+                                        food: true,
+                                        foodList: [
+                                            { name: '神戶牛排 (午餐)', img: 'https://drive.google.com/thumbnail?id=1cPfgqZM-2LwTaberXOhhjD693hBhUQVn&sz=w2560' },
+                                            { name: '明石燒 (類似章魚燒但沾高湯)', img: 'https://drive.google.com/thumbnail?id=1ZXaGS5YvJ9vP1xcz-YGI_YnwExfpHMhE&sz=w2560' }
+                                        ],
+                                        tips: '姬路城階梯很陡，要穿好走的鞋子。'
+                                    }
+                                ]
                             },
                             {
                                 id: 'd2-hotel',
@@ -305,7 +325,7 @@
                         label: 'D3 京都',
                         title: '京都古都巡禮',
                         subtitle: '清水舞台 • 金閣夕照',
-                        // D3 Hero Image (Unsplash - Kept as requested)
+                        // Reverted to original Unsplash image as requested
                         heroImg: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=1000&auto=format&fit=crop',
                         events: [
                             {
@@ -318,12 +338,13 @@
                                 highlight: true,
                                 mustEat: true,
                                 img: 'https://images.unsplash.com/photo-1576662712957-9c6a1e45703d?auto=format&fit=crop&q=80&w=200',
-                                highlights: '站在清水舞台眺望京都市景，求個戀愛御守。',
+                                highlights: '站在清水舞台眺望京都市景，祈求家內安全、身體健康。',
                                 food: true,
+                                // Corrected Food Images (Updated with User's Google Drive Links)
                                 foodList: [
-                                    { name: '湯豆腐順正', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Yudofu_001.jpg/640px-Yudofu_001.jpg' },
-                                    { name: '藤菜美：醬油糰子', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Mitarashi_dango_by_saikofish_in_Kyoto.jpg/640px-Mitarashi_dango_by_saikofish_in_Kyoto.jpg' },
-                                    { name: '% Arabica 咖啡', img: 'https://thumbs.dreamstime.com/b/famous-arabica-coffee-arashiyama-nov-kyoto-japan-image105515531.jpg' }
+                                    { name: '湯豆腐順正', img: 'https://drive.google.com/thumbnail?id=1aDWvnR1CU9lVzsnWY0w4navLLxo3JPla&sz=w2560' },
+                                    { name: '藤菜美：醬油糰子', img: 'https://drive.google.com/thumbnail?id=1IM1VAvNMkF3VMXu1qqntUKxLuhBEI4DJ&sz=w2560' },
+                                    { name: '% Arabica 咖啡', img: 'https://drive.google.com/thumbnail?id=1-eDXPQDXv6mWKWuGKPCffzRy6loCSw0_&sz=w2560' }
                                 ],
                                 tips: '二三年坂階梯多，推車不便。'
                             },
@@ -367,7 +388,6 @@
                         label: 'D4 嵐山',
                         title: '嵐山小火車 & 購物',
                         subtitle: '竹林深處 • 心齋橋',
-                        // D4 Hero Image (Google Drive Thumbnail)
                         heroImg: 'https://drive.google.com/thumbnail?id=1jcjU_dNysxsb_63Rrna4ebua6aR5Ki3H&sz=w2560', 
                         events: [
                             {
@@ -433,7 +453,6 @@
                         label: 'D5 返家',
                         title: '黑門市場 & 返台',
                         subtitle: '海鮮早午餐 • 滿載而歸',
-                        // D5 Hero Image (Google Drive Thumbnail)
                         heroImg: 'https://drive.google.com/thumbnail?id=13Y0Qn7dB6jXGXAC0xVBm9jIdFYnDUIas&sz=w2560', 
                         events: [
                             {
@@ -487,36 +506,33 @@
                     }
                 ],
 
-                // Firebase integrated logic (init method)
+                // ================= METHODS =================
                 async init() {
                     const auth = window.auth;
-                    
-                    // Wait for auth to initialize/sign-in first
                     try {
-                         // Check global token from environment
-                         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                            await window.signInWithCustomToken(auth, __initial_auth_token);
-                         } else {
-                            // Fallback to anonymous
-                            await window.signInAnonymously(auth);
-                         }
+                        if (window.firebaseReady) {
+                            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                                await window.signInWithCustomToken(auth, __initial_auth_token);
+                            } else {
+                                await window.signInAnonymously(auth);
+                            }
+                        }
                     } catch (e) {
                         console.error("Authentication failed:", e);
                     }
 
-                    // Setup Auth Listener
-                    window.onAuthStateChanged(auth, (user) => {
-                        if (user) {
-                            this.userId = user.uid;
-                            this.listenToExpenses();
-                        }
-                    });
+                    if (window.onAuthStateChanged) {
+                        window.onAuthStateChanged(auth, (user) => {
+                            if (user) {
+                                this.userId = user.uid;
+                                this.listenToExpenses();
+                            }
+                        });
+                    }
                 },
 
-                // Firestore listener
                 listenToExpenses() {
-                    if (!this.userId) return;
-                    // /artifacts/{appId}/users/{userId}/expenses
+                    if (!this.userId || !window.firebaseReady) return;
                     const q = window.query(
                         window.collection(window.db, 'artifacts', window.appId, 'users', this.userId, 'expenses'),
                         window.orderBy('createdAt', 'desc')
@@ -795,8 +811,9 @@
                         <h1 class="text-sm font-bold text-stone-700 leading-tight tracking-wide" x-text="days[selectedDay].title"></h1>
                         <span class="text-stone-500 text-[9px] font-medium tracking-wide block mt-1" x-text="days[selectedDay].subtitle"></span>
                     </div>
-                    <!-- Tabs -->
-                    <div class="absolute bottom-0 w-full z-30 flex justify-between px-6 pb-1">
+                </div>
+                <!-- Date Tabs (Moved outside hero image) -->
+                <div class="w-full z-30 flex justify-between px-6 pt-2 pb-1 bg-[#e2ded3]">
                         <template x-for="(day, index) in days" :key="index">
                             <button @click="changeDay(index)" 
                                     class="flex flex-col items-center justify-end transition-all duration-300 group pb-2"
@@ -809,12 +826,11 @@
                                      :class="selectedDay === index ? 'w-full opacity-100' : 'w-0 opacity-0'"></div>
                             </button>
                         </template>
-                    </div>
                 </div>
             </div>
 
             <!-- 2. Content -->
-            <div class="flex-1 relative z-10 px-5 pt-5 scrollable-content bg-[#e2ded3]">
+            <div class="flex-1 relative z-10 px-5 pt-1 scrollable-content bg-[#e2ded3]">
                 <div class="space-y-0 pb-8 relative">
                     <template x-for="(spot, index) in days[selectedDay].events" :key="spot.id || spot.title">
                         <div class="relative z-10 flex">
