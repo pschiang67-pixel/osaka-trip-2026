@@ -3,60 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    
-    <!-- iOS App Icon Settings -->
-    <link rel="apple-touch-icon" sizes="180x180" href="https://images.unsplash.com/photo-1616053641775-d14457e5b61e?q=80&w=192&h=192&auto=format&fit=crop">
-    <link rel="icon" type="image/png" sizes="32x32" href="https://images.unsplash.com/photo-1616053641775-d14457e5b61e?q=80&w=32&h=32&auto=format&fit=crop">
     <meta name="apple-mobile-web-app-title" content="2026京阪旅">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    
-    <title>2026 京阪家族旅 (和風版)</title>
+    <link rel="apple-touch-icon" href="https://images.unsplash.com/photo-1616053641775-d14457e5b61e?q=80&w=192&h=192&auto=format&fit=crop">
+    <title>2026 京阪家族旅</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Noto+Serif+TC:wght@400;700&display=swap" rel="stylesheet">
 
-    <!-- Firebase SDK Setup -->
+    <!-- Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, addDoc, deleteDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        let firebaseConfig = { apiKey: "placeholder", authDomain: "placeholder", projectId: "placeholder" };
-        if (typeof __firebase_config !== 'undefined') {
-            try {
-                firebaseConfig = JSON.parse(__firebase_config);
-            } catch (e) {
-                console.warn("Firebase config parse error", e);
-            }
-        }
+        let cfg = { apiKey: "placeholder", authDomain: "placeholder", projectId: "placeholder" };
+        if (typeof __firebase_config !== 'undefined') try { cfg = JSON.parse(__firebase_config); } catch (e) {}
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-        window.db = db;
-        window.auth = auth;
-        window.appId = appId;
-        window.signInAnonymously = signInAnonymously;
-        window.signInWithCustomToken = signInWithCustomToken;
-        window.onAuthStateChanged = onAuthStateChanged;
-        window.collection = collection;
-        window.doc = doc;
-        window.addDoc = addDoc;
-        window.deleteDoc = deleteDoc;
-        window.onSnapshot = onSnapshot;
-        window.query = query;
-        window.orderBy = orderBy;
+        const app = initializeApp(cfg);
+        window.db = getFirestore(app);
+        window.auth = getAuth(app);
+        window.appId = typeof __app_id !== 'undefined' ? __app_id : 'default';
+        window.firebaseOps = { signInAnonymously, signInWithCustomToken, onAuthStateChanged, collection, doc, addDoc, deleteDoc, onSnapshot, query, orderBy };
         window.firebaseReady = true;
     </script>
     
-    <!-- App Logic -->
     <script>
         function appData() {
             return {
-                // ================= PROPERTIES =================
                 activeTab: 'cover',
                 selectedDay: 0,
                 showDetailModal: false,
@@ -66,14 +41,11 @@
                 showAddExpense: false,
                 showCategoryMenu: false,
                 exchangeRate: 0.20,
-                
-                // Firebase Data
                 userId: null,
                 expenses: [], 
                 newExpense: { name: '', amount: '', category: 'food', paymentMethod: 'cash' },
                 totalExpenseJPY: 0,
 
-                // ================= STATIC DATA =================
                 categories: [
                     { id: 'food', name: '餐飲', icon: 'fas fa-utensils', color: 'bg-orange-100 text-orange-500' },
                     { id: 'transport', name: '交通', icon: 'fas fa-bus', color: 'bg-blue-100 text-blue-500' },
@@ -82,790 +54,198 @@
                     { id: 'hotel', name: '住宿', icon: 'fas fa-bed', color: 'bg-indigo-100 text-indigo-500' },
                     { id: 'other', name: '雜支', icon: 'fas fa-ellipsis-h', color: 'bg-gray-100 text-gray-500' }
                 ],
-
-                paymentMethods: [
-                    { id: 'cash', name: '現金', icon: 'fas fa-money-bill-wave' },
-                    { id: 'card', name: '信用卡', icon: 'fas fa-credit-card' }
-                ],
-
+                paymentMethods: [{ id: 'cash', name: '現金', icon: 'fas fa-money-bill-wave' }, { id: 'card', name: '信用卡', icon: 'fas fa-credit-card' }],
                 weatherForecast: [
-                    { time: '現在', icon: 'fas fa-sun text-orange-400', temp: '16°' },
-                    { time: '14:00', icon: 'fas fa-cloud-sun text-orange-400', temp: '17°' },
-                    { time: '15:00', icon: 'fas fa-cloud text-slate-400', temp: '16°' },
-                    { time: '16:00', icon: 'fas fa-cloud text-slate-400', temp: '15°' },
-                    { time: '17:00', icon: 'fas fa-moon text-indigo-400', temp: '14°' },
-                    { time: '18:00', icon: 'fas fa-moon text-indigo-400', temp: '13°' },
+                    { time: '現在', icon: 'fas fa-sun text-orange-400', temp: '16°' }, { time: '14:00', icon: 'fas fa-cloud-sun text-orange-400', temp: '17°' },
+                    { time: '15:00', icon: 'fas fa-cloud text-slate-400', temp: '16°' }, { time: '16:00', icon: 'fas fa-cloud text-slate-400', temp: '15°' },
+                    { time: '17:00', icon: 'fas fa-moon text-indigo-400', temp: '14°' }, { time: '18:00', icon: 'fas fa-moon text-indigo-400', temp: '13°' },
                 ],
-
                 days: [
                     {
-                        dateLabel: '3/18',
-                        date: '3/18',
-                        dayOfWeek: 'WED.',
-                        label: 'D1 大阪',
-                        title: '大阪抵達 & 天保山',
-                        subtitle: '機場巴士直達 • 港灣夕陽',
+                        date: '3/18', dayOfWeek: 'WED.', label: 'D1 大阪', title: '大阪抵達 & 天保山', subtitle: '機場巴士直達 • 港灣夕陽',
                         heroImg: 'https://drive.google.com/thumbnail?id=1w6rxk4i3Kzsnew_Th6dksKdL1g4KGn02&sz=w2560', 
                         events: [
-                            {
-                                id: 'd1-flights',
-                                type: 'split',
-                                time: '07:00', 
-                                items: [
-                                    {
-                                        id: 'd1-f1',
-                                        time: '07:00',
-                                        title: '虎航 IT210',
-                                        location: '桃園機場第一航廈',
-                                        desc: '第一組起飛',
-                                        colorClass: 'border-l-4 border-sky-400',
-                                        bgClass: 'bg-sky-50', 
-                                        highlight: false,
-                                        mustEat: false,
-                                        img: 'https://drive.google.com/thumbnail?id=1xa-a1Ggi7ItOs8THpFWoZ9rCFtZlk3iG&sz=w2560',
-                                        highlights: '第一航廈。請提早2.5小時(04:30)抵達機場。',
-                                        tips: '檢查：護照、Visit Japan Web QR Code。'
-                                    },
-                                    {
-                                        id: 'd1-f2',
-                                        time: '07:40',
-                                        title: '星宇 JX820',
-                                        location: '桃園機場第一航廈',
-                                        desc: '第二組起飛',
-                                        colorClass: 'border-l-4 border-sky-400',
-                                        bgClass: 'bg-sky-50', 
-                                        highlight: false,
-                                        mustEat: false,
-                                        img: 'https://drive.google.com/thumbnail?id=11RBGZ2k3G2JsvVlxLx_5yuCG3WoA-xcA&sz=w2560',
-                                        highlights: '第一航廈/第二航廈(請再確認)。請提早2.5小時(05:10)抵達機場。',
-                                        tips: '檢查：護照、Visit Japan Web QR Code。'
-                                    }
-                                ]
-                            },
-                            {
-                                id: 'd1-arrival',
-                                time: '11:30',
-                                title: '抵達關西機場',
-                                navLink: 'https://maps.app.goo.gl/4TPTZqY62tdyDWQB8',
-                                desc: '全員集合，準備搭乘機場豪華巴士。',
-                                colorClass: 'border-l-4 border-blue-400',
-                                bgClass: 'bg-blue-50',
-                                highlight: true,
-                                mustEat: false,
-                                img: 'https://drive.google.com/thumbnail?id=1an7S3rawWog3Rc03XpfkF5-PCJncpbVz&sz=w2560',
-                                detailImages: [
-                                    'https://drive.google.com/thumbnail?id=1an7S3rawWog3Rc03XpfkF5-PCJncpbVz&sz=w2560',
-                                    'https://drive.google.com/thumbnail?id=1sNQxabFAZTcvJgtcS65v8_vdPNpN5x5c&sz=w2560'
-                                ],
-                                highlights: '集合地點：第一航廈 1F 南翼/北翼巴士櫃台附近。搭乘地點：3號月台。',
-                                tips: '搭乘往「南港・天保山 (海遊館)」方向的機場巴士，車程約 60 分鐘。'
-                            },
-                            {
-                                id: 'd1-tempozan',
-                                time: '13:00',
-                                title: '天保山港灣村',
-                                navLink: 'https://maps.app.goo.gl/9jejQZHCMcfWHWgg7',
-                                desc: 'A組放行李，B組玩樂高/海遊館。',
-                                colorClass: 'border-l-4 border-indigo-400',
-                                bgClass: 'bg-indigo-50',
-                                highlight: true,
-                                mustEat: false,
-                                img: 'https://drive.google.com/thumbnail?id=1ED7ASJKsKWwm2RGH_UviVrF8R8y93j9r&sz=w2560',
-                                highlights: '體驗大阪獨有的「免費渡船」過河，享受港灣區的悠閒氛圍。',
-                                food: true,
-                                foodList: [
-                                    { name: '難波美食小巷', img: 'https://drive.google.com/thumbnail?id=1tmoPYfzMtS-IeyH98gmW0zNHevEt3RUp&sz=w2560' },
-                                    { name: '自由軒咖哩飯', img: 'https://drive.google.com/thumbnail?id=1o6K3rvwWSeeLvRdV5YjPLe8JlnTgbPZZ&sz=w2560' },
-                                    { name: '北極星蛋包飯', img: 'https://drive.google.com/thumbnail?id=1ytbMEx9WYLV73qlJLv3D0_3ya-diH3s2&sz=w2560' }
-                                ],
-                                tips: '渡船每30分鐘一班，完全免費！行李特攻隊記得走無障礙坡道。'
-                            },
-                            {
-                                id: 'd1-split-dinner',
-                                type: 'split',
-                                time: '15:00', 
-                                items: [
-                                    {
-                                        id: 'd1-group-a',
-                                        time: '15:00',
-                                        title: 'A組: 星光環球',
-                                        navLink: 'https://maps.app.goo.gl/b19CicmizUC5ySve6',
-                                        desc: '傍晚入園，晚餐推薦。',
-                                        colorClass: 'border-l-4 border-purple-400',
-                                        bgClass: 'bg-purple-50',
-                                        highlight: true,
-                                        mustEat: true,
-                                        img: 'https://drive.google.com/thumbnail?id=1dwtfFE8ajAtlqw2RQ4cOgxvKf_lXqtSc&sz=w2560',
-                                        highlights: '享受夜晚的魔法世界！晚餐可選擇園區內特色餐廳或 CityWalk 美食。',
-                                        food: true,
-                                        foodList: [
-                                            { name: '奇諾比奧咖啡店：瑪利歐漢堡', img: 'https://drive.google.com/thumbnail?id=1SFokEN4kysLNtFbgYSVWMbVmYtDtTLoY&sz=w2560' },
-                                            { name: '三根掃帚：烤雞拼盤 & 奶油啤酒', img: 'https://drive.google.com/thumbnail?id=1KsgBNXzj1J-hGJqtZrc0QQK1FVKVyke1&sz=w2560' },
-                                            { name: 'Red Lobster (龍蝦海鮮)', img: 'https://drive.google.com/thumbnail?id=1njq6h23dKWJA3ZJvWkzKdJv0cE7iq2pb&sz=w2560' },
-                                            { name: 'Shake Shack (美式漢堡)', img: 'https://drive.google.com/thumbnail?id=1lCPRvIUGlRTWoI8yf1qDCmf84gYfFZpC&sz=w2560' }
-                                        ],
-                                        tips: '閉園後 CityWalk 餐廳人潮眾多，建議若在園區內玩到很晚，可先吃些小點心，或預約餐廳。'
-                                    },
-                                    {
-                                        id: 'd1-group-b',
-                                        time: '15:00',
-                                        title: 'B組: 海遊館晚餐',
-                                        navLink: 'https://www.google.com/maps/dir/天保山渡船場/天保山渡船場+(桜島側)/環球利蓓爾酒店',
-                                        desc: '欣賞完海遊館後，享用美食。',
-                                        colorClass: 'border-l-4 border-orange-400',
-                                        bgClass: 'bg-orange-50',
-                                        highlight: false,
-                                        mustEat: true,
-                                        img: 'https://drive.google.com/thumbnail?id=1kLgvn594syj6M4TH7NWcXsfcIhSF9Uyq&sz=w2560',
-                                        highlights: '推薦前往「難波美食小巷 (Naniwa Kuishinbo Yokocho)」，重現昭和時代大阪街道的懷舊美食主題樂園。',
-                                        food: true,
-                                        foodList: [
-                                            { name: '北極星蛋包飯：大阪蛋包飯創始店', img: 'https://drive.google.com/thumbnail?id=1ytbMEx9WYLV73qlJLv3D0_3ya-diH3s2&sz=w2560' },
-                                            { name: '自由軒：名物生蛋咖哩飯', img: 'https://drive.google.com/thumbnail?id=1o6K3rvwWSeeLvRdV5YjPLe8JlnTgbPZZ&sz=w2560' },
-                                            { name: '會津屋：元祖章魚燒 (無醬汁)', img: 'https://drive.google.com/thumbnail?id=1vqNlSYBmg9iYjj3f7fIKr5XI9EITM9_0&sz=w2560' },
-                                            { name: '築港麵工房：海景烏龍麵', img: 'https://drive.google.com/thumbnail?id=1KgdkXr7CJTWDANEnSHa8zJkgwfSP-XCf&sz=w2560' }
-                                        ],
-                                        tips: '⚠️ 重要交通指引：點擊「導航去」可看完整<span class="font-bold text-red-500 bg-red-100 px-1 rounded">步行路線</span>。請至海遊館西側的「天保山渡船場」搭船（免費，每小時00分/30分發船）。下船後即抵達櫻島側，沿著河岸步行約 15 分鐘即可回到環球利蓓爾酒店。'
-                                    }
-                                ]
-                            },
-                            {
-                                id: 'd1-hotel',
-                                time: '22:00',
-                                title: '環球利蓓爾酒店',
-                                navLink: 'https://www.google.com/maps/search/?api=1&query=環球利蓓爾酒店',
-                                location: '環球利蓓爾酒店',
-                                desc: '前往飯店休息，享受天然溫泉。',
-                                colorClass: 'border-l-4 border-slate-400',
-                                bgClass: 'bg-slate-100',
-                                highlight: false,
-                                mustEat: false,
-                                img: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=600&auto=format&fit=crop',
-                                highlights: '飯店位於 JR 櫻島站旁，交通便利。3樓設有天然溫泉「Riverside Spa」。',
-                                tips: '溫泉使用時間為 14:00~24:00 (最終入場 23:30)。請記得從房間攜帶毛巾與房卡前往。'
-                            }
+                            { id: 'd1-f', type: 'split', time: '07:00', items: [
+                                { id: 'd1-f1', time: '07:00', title: '虎航 IT210', desc: '第一組起飛', colorClass: 'border-l-4 border-sky-400', bgClass: 'bg-sky-50', img: 'https://drive.google.com/thumbnail?id=1xa-a1Ggi7ItOs8THpFWoZ9rCFtZlk3iG&sz=w2560', highlights: '第一航廈。請提早2.5小時(04:30)抵達機場。', tips: '檢查：護照、Visit Japan Web QR Code。' },
+                                { id: 'd1-f2', time: '07:40', title: '星宇 JX820', desc: '第二組起飛', colorClass: 'border-l-4 border-sky-400', bgClass: 'bg-sky-50', img: 'https://drive.google.com/thumbnail?id=11RBGZ2k3G2JsvVlxLx_5yuCG3WoA-xcA&sz=w2560', highlights: '第一航廈/第二航廈(請再確認)。請提早2.5小時(05:10)抵達機場。', tips: '檢查：護照、Visit Japan Web QR Code。' }
+                            ]},
+                            { id: 'd1-arr', time: '11:30', title: '抵達關西機場', navLink: 'https://maps.app.goo.gl/4TPTZqY62tdyDWQB8', desc: '全員集合', colorClass: 'border-l-4 border-blue-400', bgClass: 'bg-blue-50', img: 'https://drive.google.com/thumbnail?id=1an7S3rawWog3Rc03XpfkF5-PCJncpbVz&sz=w2560', detailImages: ['https://drive.google.com/thumbnail?id=1an7S3rawWog3Rc03XpfkF5-PCJncpbVz&sz=w2560', 'https://drive.google.com/thumbnail?id=1sNQxabFAZTcvJgtcS65v8_vdPNpN5x5c&sz=w2560'], highlights: '集合地點：第一航廈 1F 南翼/北翼巴士櫃台附近。', tips: '搭乘往「南港・天保山 (海遊館)」方向的機場巴士，車程約 60 分鐘。' },
+                            { id: 'd1-tpz', time: '13:00', title: '天保山港灣村', navLink: 'https://maps.app.goo.gl/9jejQZHCMcfWHWgg7', desc: 'A組放行李，B組玩樂高', colorClass: 'border-l-4 border-indigo-400', bgClass: 'bg-indigo-50', img: 'https://drive.google.com/thumbnail?id=1ED7ASJKsKWwm2RGH_UviVrF8R8y93j9r&sz=w2560', highlights: '體驗大阪獨有的「免費渡船」過河，享受港灣區的悠閒氛圍。', foodList: [{name: '難波美食小巷', img: 'https://drive.google.com/thumbnail?id=1tmoPYfzMtS-IeyH98gmW0zNHevEt3RUp&sz=w2560'}, {name: '自由軒咖哩', img: 'https://drive.google.com/thumbnail?id=1o6K3rvwWSeeLvRdV5YjPLe8JlnTgbPZZ&sz=w2560'}, {name: '北極星蛋包飯', img: 'https://drive.google.com/thumbnail?id=1ytbMEx9WYLV73qlJLv3D0_3ya-diH3s2&sz=w2560'}], tips: '渡船每30分鐘一班，完全免費！' },
+                            { id: 'd1-din', type: 'split', time: '15:00', items: [
+                                { id: 'd1-ga', title: 'A組: 星光環球', navLink: 'https://maps.app.goo.gl/b19CicmizUC5ySve6', desc: '傍晚入園', colorClass: 'border-l-4 border-purple-400', bgClass: 'bg-purple-50', img: 'https://drive.google.com/thumbnail?id=1dwtfFE8ajAtlqw2RQ4cOgxvKf_lXqtSc&sz=w2560', highlights: '享受夜晚的魔法世界！晚餐可選擇園區內特色餐廳或 CityWalk 美食。', foodList: [{name: 'Shake Shack', img: 'https://drive.google.com/thumbnail?id=1lCPRvIUGlRTWoI8yf1qDCmf84gYfFZpC&sz=w2560'}, {name: 'Red Lobster', img: 'https://drive.google.com/thumbnail?id=1njq6h23dKWJA3ZJvWkzKdJv0cE7iq2pb&sz=w2560'}, {name: '奇諾比奧', img: 'https://drive.google.com/thumbnail?id=1SFokEN4kysLNtFbgYSVWMbVmYtDtTLoY&sz=w2560'}, {name: '奶油啤酒', img: 'https://drive.google.com/thumbnail?id=1KsgBNXzj1J-hGJqtZrc0QQK1FVKVyke1&sz=w2560'}] },
+                                { id: 'd1-gb', title: 'B組: 海遊館晚餐', navLink: 'https://www.google.com/maps/dir/天保山渡船場/天保山渡船場+(桜島側)/環球利蓓爾酒店', desc: '海遊館+美食', colorClass: 'border-l-4 border-orange-400', bgClass: 'bg-orange-50', img: 'https://drive.google.com/thumbnail?id=1kLgvn594syj6M4TH7NWcXsfcIhSF9Uyq&sz=w2560', highlights: '推薦前往「難波美食小巷」，懷舊美食主題樂園。', foodList: [{name: '北極星', img: 'https://drive.google.com/thumbnail?id=1ytbMEx9WYLV73qlJLv3D0_3ya-diH3s2&sz=w2560'}, {name: '自由軒', img: 'https://drive.google.com/thumbnail?id=1o6K3rvwWSeeLvRdV5YjPLe8JlnTgbPZZ&sz=w2560'}, {name: '會津屋', img: 'https://drive.google.com/thumbnail?id=1vqNlSYBmg9iYjj3f7fIKr5XI9EITM9_0&sz=w2560'}, {name: '築港麵工房', img: 'https://drive.google.com/thumbnail?id=1KgdkXr7CJTWDANEnSHa8zJkgwfSP-XCf&sz=w2560'}], tips: '點擊導航看B組渡船+步行路線。' }
+                            ]},
+                            { id: 'd1-htl', time: '22:00', title: '環球利蓓爾酒店', navLink: 'https://www.google.com/maps/search/?api=1&query=環球利蓓爾酒店', location: '環球利蓓爾酒店', desc: '享受天然溫泉', colorClass: 'border-l-4 border-slate-400', bgClass: 'bg-slate-100', img: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=600', highlights: '飯店位於 JR 櫻島站旁，交通便利。3樓設有天然溫泉。', tips: '溫泉使用時間為 14:00~24:00。' }
                         ]
                     },
                     {
-                        dateLabel: '3/19',
-                        date: '3/19',
-                        dayOfWeek: 'THU.',
-                        label: 'D2 USJ',
-                        title: '環球影城 & 姬路城',
-                        subtitle: '任天堂世界 • 世界遺產',
-                        heroImg: 'https://drive.google.com/thumbnail?id=1p-63UUjoG7gfh_jHQZXIjHCta-wMWwPm&sz=w2560', 
+                        date: '3/19', dayOfWeek: 'THU.', label: 'D2 USJ', title: '環球影城 & 姬路城', subtitle: '任天堂世界 • 世界遺產', heroImg: 'https://drive.google.com/thumbnail?id=1p-63UUjoG7gfh_jHQZXIjHCta-wMWwPm&sz=w2560',
                         events: [
-                            {
-                                id: 'd2-split-day',
-                                type: 'split',
-                                time: '07:30', 
-                                items: [
-                                    {
-                                        id: 'd2-usj',
-                                        time: '07:30',
-                                        title: 'A組: 環球影城',
-                                        navLink: 'https://maps.app.goo.gl/vQxdETMPSUXarF9G6',
-                                        desc: '全日暢玩！超級任天堂世界。',
-                                        colorClass: 'border-l-4 border-red-400',
-                                        bgClass: 'bg-red-50',
-                                        highlight: true,
-                                        mustEat: true,
-                                        img: 'https://drive.google.com/thumbnail?id=1N9ppJqfQQdqCd5tPfyGnojAbRCL8UBl3&sz=w2560',
-                                        highlights: '進入瑪利歐的遊戲世界！必玩庫巴挑戰書，必買能量手環。',
-                                        food: true,
-                                        foodList: [
-                                            { name: '奇諾比奧咖啡店：磚塊提拉米蘇', img: 'https://drive.google.com/thumbnail?id=1OvNoQjhtin_9NYVWzPrbiba8aTjzkMZ1&sz=w2560' },
-                                            { name: '哈利波特區：奶油啤酒 (Butterbeer)', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Butterbeer!_%2829066680340%29.jpg/640px-Butterbeer!_%2829066680340%29.jpg' },
-                                            { name: '小小兵包子', img: 'https://drive.google.com/thumbnail?id=1bPrQ1BALC0rg_OW-3BsVjNXOnrRRbqgP&sz=w2560' }
-                                        ],
-                                        tips: '記得下載 USJ 官方 APP 抽整理券。'
-                                    },
-                                    {
-                                        id: 'd2-himeji',
-                                        time: '10:30',
-                                        title: 'B組: 姬路神戶',
-                                        navLink: 'https://maps.app.goo.gl/2iWEDJ5Vv4PwFVFR7',
-                                        desc: '世界遺產白鷺城與麵包超人。',
-                                        colorClass: 'border-l-4 border-indigo-400',
-                                        bgClass: 'bg-indigo-50',
-                                        highlight: true,
-                                        mustEat: false,
-                                        img: 'https://drive.google.com/thumbnail?id=1_cjCVriIuJooD-LYOtPn_9wm22rN6yIX&sz=w2560',
-                                        highlights: '日本第一名城，全白外觀超美。下午去麵包超人館適合小朋友放電。',
-                                        food: true,
-                                        foodList: [
-                                            { name: '神戶牛排 (午餐)', img: 'https://drive.google.com/thumbnail?id=1cPfgqZM-2LwTaberXOhhjD693hBhUQVn&sz=w2560' },
-                                            { name: '明石燒 (類似章魚燒但沾高湯)', img: 'https://drive.google.com/thumbnail?id=1ZXaGS5YvJ9vP1xcz-YGI_YnwExfpHMhE&sz=w2560' }
-                                        ],
-                                        tips: '姬路城階梯很陡，要穿好走的鞋子。'
-                                    }
-                                ]
-                            },
-                            {
-                                id: 'd2-hotel',
-                                time: '22:00',
-                                title: '環球利蓓爾酒店',
-                                navLink: 'https://www.google.com/maps/search/?api=1&query=環球利蓓爾酒店',
-                                location: '環球利蓓爾酒店',
-                                desc: '返回飯店休息。',
-                                colorClass: 'border-l-4 border-slate-400',
-                                bgClass: 'bg-slate-100',
-                                highlight: false,
-                                mustEat: false,
-                                img: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?q=80&w=600&auto=format&fit=crop',
-                                highlights: '今天走了很多路，建議晚上可以再次使用溫泉放鬆腿部肌肉。',
-                                tips: '若明天要早起前往京都，建議今晚先整理好行李。'
-                            }
+                            { id: 'd2-sp', type: 'split', time: '07:30', items: [
+                                { id: 'd2-usj', title: 'A組: 環球影城', navLink: 'https://maps.app.goo.gl/vQxdETMPSUXarF9G6', desc: '全日暢玩', colorClass: 'border-l-4 border-red-400', bgClass: 'bg-red-50', img: 'https://drive.google.com/thumbnail?id=1N9ppJqfQQdqCd5tPfyGnojAbRCL8UBl3&sz=w2560', highlights: '進入瑪利歐的遊戲世界！必玩庫巴挑戰書。', foodList: [{name: '提拉米蘇', img: 'https://drive.google.com/thumbnail?id=1OvNoQjhtin_9NYVWzPrbiba8aTjzkMZ1&sz=w2560'}, {name: '奶油啤酒', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Butterbeer!_%2829066680340%29.jpg/640px-Butterbeer!_%2829066680340%29.jpg'}, {name: '小小兵包子', img: 'https://drive.google.com/thumbnail?id=1bPrQ1BALC0rg_OW-3BsVjNXOnrRRbqgP&sz=w2560'}], tips: '記得下載 USJ 官方 APP 抽整理券。' },
+                                { id: 'd2-him', title: 'B組: 姬路神戶', navLink: 'https://maps.app.goo.gl/2iWEDJ5Vv4PwFVFR7', desc: '白鷺城+神戶', colorClass: 'border-l-4 border-indigo-400', bgClass: 'bg-indigo-50', img: 'https://drive.google.com/thumbnail?id=1_cjCVriIuJooD-LYOtPn_9wm22rN6yIX&sz=w2560', highlights: '日本第一名城，全白外觀超美。', foodList: [{name: '神戶牛排', img: 'https://drive.google.com/thumbnail?id=1cPfgqZM-2LwTaberXOhhjD693hBhUQVn&sz=w2560'}, {name: '明石燒', img: 'https://drive.google.com/thumbnail?id=1ZXaGS5YvJ9vP1xcz-YGI_YnwExfpHMhE&sz=w2560'}], tips: '姬路城階梯很陡，要穿好走的鞋子。' }
+                            ]},
+                            { id: 'd2-htl', time: '22:00', title: '環球利蓓爾酒店', navLink: 'https://www.google.com/maps/search/?api=1&query=環球利蓓爾酒店', desc: '返回飯店休息', colorClass: 'border-l-4 border-slate-400', bgClass: 'bg-slate-100', img: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?q=80&w=600', highlights: '今天走了很多路，建議晚上可以再次使用溫泉放鬆腿部肌肉。' }
                         ]
                     },
                     {
-                        dateLabel: '3/20',
-                        date: '3/20',
-                        dayOfWeek: 'FRI.',
-                        label: 'D3 京都',
-                        title: '京都古都巡禮',
-                        subtitle: '清水舞台 • 金閣夕照',
-                        // Reverted to original Unsplash image as requested
-                        heroImg: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=1000&auto=format&fit=crop',
+                        date: '3/20', dayOfWeek: 'FRI.', label: 'D3 京都', title: '京都古都巡禮', subtitle: '清水舞台 • 金閣夕照', heroImg: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=1000',
                         events: [
-                            {
-                                id: 'd3-kiyomizu',
-                                time: '09:30',
-                                title: '清水寺 & 祇園',
-                                desc: '早晨參拜清水舞台，漫步花見小路。',
-                                colorClass: 'border-l-4 border-amber-400',
-                                bgClass: 'bg-amber-50',
-                                highlight: true,
-                                mustEat: true,
-                                img: 'https://images.unsplash.com/photo-1576662712957-9c6a1e45703d?auto=format&fit=crop&q=80&w=200',
-                                highlights: '站在清水舞台眺望京都市景，祈求家內安全、身體健康。',
-                                food: true,
-                                // Corrected Food Images (Updated with User's Google Drive Links)
-                                foodList: [
-                                    { name: '湯豆腐順正', img: 'https://drive.google.com/thumbnail?id=1aDWvnR1CU9lVzsnWY0w4navLLxo3JPla&sz=w2560' },
-                                    { name: '藤菜美：醬油糰子', img: 'https://drive.google.com/thumbnail?id=1IM1VAvNMkF3VMXu1qqntUKxLuhBEI4DJ&sz=w2560' },
-                                    { name: '% Arabica 咖啡', img: 'https://drive.google.com/thumbnail?id=1-eDXPQDXv6mWKWuGKPCffzRy6loCSw0_&sz=w2560' }
-                                ],
-                                tips: '二三年坂階梯多，推車不便。'
-                            },
-                            {
-                                id: 'd3-kinkakuji',
-                                time: '14:15',
-                                title: '金閣寺 & 二条城',
-                                desc: '金碧輝煌的舍利殿與大政奉還舞台。',
-                                colorClass: 'border-l-4 border-amber-600',
-                                bgClass: 'bg-amber-50',
-                                highlight: true,
-                                mustEat: false,
-                                img: 'https://images.unsplash.com/photo-1545564468-18014022421c?auto=format&fit=crop&q=80&w=200',
-                                highlights: '金閣寺倒影是必拍。二条城注意鸝鳴地板的聲音。',
-                                foodList: [
-                                    { name: '金閣寺外抹茶冰淇淋', img: 'https://image.shutterstock.com/image-photo/matcha-tea-kinkakuji-garden-kyoto-japan-260nw-1246790176.jpg' }
-                                ],
-                                tips: '二条城 16:00 最後入場，絕對不能遲到！'
-                            },
-                            {
-                                id: 'd3-hotel',
-                                time: '22:00',
-                                title: 'MIMARU 心齋橋NORTH',
-                                navLink: 'https://www.google.com/maps/search/?api=1&query=MIMARU+OSAKA+SHINSAIBASHI+NORTH',
-                                location: 'MIMARU 大阪 心齋橋NORTH',
-                                desc: '入住公寓式酒店，空間寬敞。',
-                                colorClass: 'border-l-4 border-slate-400',
-                                bgClass: 'bg-slate-100',
-                                highlight: false,
-                                mustEat: false,
-                                img: 'https://images.unsplash.com/photo-1522771753033-6a9a6f9f7258?q=80&w=600&auto=format&fit=crop',
-                                highlights: '位於心齋橋商圈北側，適合家庭入住，有小廚房與餐桌。',
-                                tips: '若有買太多伴手禮，可以先整理行李箱空間。飯店附近有超商可採買隔天早餐。'
-                            }
+                            { id: 'd3-kiy', time: '09:30', title: '清水寺 & 祇園', navLink: 'https://www.google.com/maps/search/?api=1&query=清水寺', desc: '早晨參拜', colorClass: 'border-l-4 border-amber-400', bgClass: 'bg-amber-50', img: 'https://drive.google.com/thumbnail?id=1lBEQkTXNYcNUYlgOaQLFHBh8rdoTvg3-&sz=w2560', highlights: '祈求家內安全、身體健康。', foodList: [{name: '湯豆腐', img: 'https://drive.google.com/thumbnail?id=1aDWvnR1CU9lVzsnWY0w4navLLxo3JPla&sz=w2560'}, {name: '醬油糰子', img: 'https://drive.google.com/thumbnail?id=1IM1VAvNMkF3VMXu1qqntUKxLuhBEI4DJ&sz=w2560'}, {name: 'ARABICA', img: 'https://drive.google.com/thumbnail?id=1-eDXPQDXv6mWKWuGKPCffzRy6loCSw0_&sz=w2560'}], tips: '二三年坂階梯多，推車不便。' },
+                            { id: 'd3-kin', time: '14:15', title: '金閣寺 & 二条城', desc: '金碧輝煌', colorClass: 'border-l-4 border-amber-600', bgClass: 'bg-amber-50', img: 'https://drive.google.com/thumbnail?id=1jII64HV_MrG4Ll4Uk6auaqq2DEvvJ7c6&sz=w2560', highlights: '欣賞金碧輝煌的舍利殿與鏡湖池的絕美倒影。', food: false, tips: '二条城 16:00 最後入場！' },
+                            { id: 'd3-htl', time: '22:00', title: 'MIMARU 心齋橋NORTH', navLink: 'https://www.google.com/maps/search/?api=1&query=MIMARU+OSAKA+SHINSAIBASHI+NORTH', desc: '入住公寓式酒店', colorClass: 'border-l-4 border-slate-400', bgClass: 'bg-slate-100', img: 'https://drive.google.com/thumbnail?id=1RhNO2QQ5DMM466tQZEeXZhg62ShUnteW&sz=w2560', highlights: '位於心齋橋商圈北側，適合家庭入住，有小廚房與餐桌。', tips: '飯店附近有超商可採買隔天早餐。' }
                         ]
                     },
                     {
-                        dateLabel: '3/21',
-                        date: '3/21',
-                        dayOfWeek: 'SAT.',
-                        label: 'D4 嵐山',
-                        title: '嵐山小火車 & 購物',
-                        subtitle: '竹林深處 • 心齋橋',
-                        heroImg: 'https://drive.google.com/thumbnail?id=1jcjU_dNysxsb_63Rrna4ebua6aR5Ki3H&sz=w2560', 
+                        date: '3/21', dayOfWeek: 'SAT.', label: 'D4 嵐山', title: '嵐山小火車 & 購物', subtitle: '竹林深處 • 心齋橋', heroImg: 'https://drive.google.com/thumbnail?id=1jcjU_dNysxsb_63Rrna4ebua6aR5Ki3H&sz=w2560',
                         events: [
-                            {
-                                id: 'd4-arashiyama',
-                                time: '09:30',
-                                title: '嵐山小火車 & 竹林',
-                                navLink: 'https://maps.app.goo.gl/1zgLwn4o42GGngYi6',
-                                desc: '搭乘復古小火車，漫步竹林小徑。',
-                                colorClass: 'border-l-4 border-green-600',
-                                bgClass: 'bg-green-50',
-                                highlight: true,
-                                mustEat: true,
-                                img: 'https://images.unsplash.com/photo-1621689622941-865dc601174d?auto=format&fit=crop&q=80&w=200',
-                                highlights: '保津川峽谷風景絕美。野宮神社求學業跟良緣。',
-                                food: true,
-                                foodList: [
-                                    { name: '廣川鰻魚飯 (米其林)', img: 'https://www.insidekyoto.com/wp-content/uploads/2013/10/unagi-hirokawa-eel-bowl.jpg' },
-                                    { name: '中村屋可樂餅', img: 'https://tblg.k-img.com/restaurant/images/Rvw/14498/640x640_rect_14498993.jpg' },
-                                    { name: '% Arabica 嵐山店', img: 'https://thumbs.dreamstime.com/b/famous-arabica-coffee-arashiyama-nov-kyoto-japan-image105515531.jpg' }
-                                ],
-                                tips: '小火車票務必提前一個月預約。'
-                            },
-                            {
-                                id: 'd4-shinsaibashi',
-                                time: '15:00',
-                                title: '心齋橋 & 道頓堀',
-                                desc: '大阪最強購物區，跑跑人看板打卡。',
-                                colorClass: 'border-l-4 border-pink-400',
-                                bgClass: 'bg-pink-50',
-                                highlight: false,
-                                mustEat: true,
-                                img: 'https://images.unsplash.com/photo-1590253230530-9b6f50c05c32?auto=format&fit=crop&q=80&w=200',
-                                highlights: '購物天堂！藥妝、服飾、電器一次買齊。',
-                                food: true,
-                                foodList: [
-                                    { name: '一蘭拉麵', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Ichiran_Ramen_20130629.jpg/640px-Ichiran_Ramen_20130629.jpg' },
-                                    { name: '蟹道樂 (烤螃蟹)', img: 'https://c8.alamy.com/comp/2PNXYXM/april-2023-osaka-food-giant-crab-sign-outside-of-the-kani-doraku-crab-restaurant-in-the-dotonbori-district-of-osakajapanasia-2PNXYXM.jpg' },
-                                    { name: '章魚燒 (本家/赤鬼)', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Takoyaki_by_music4life_in_Osaka.jpg/640px-Takoyaki_by_music4life_in_Osaka.jpg' }
-                                ],
-                                tips: '購物記得帶護照退稅。'
-                            },
-                            {
-                                id: 'd4-hotel',
-                                time: '22:00',
-                                title: 'MIMARU 心齋橋NORTH',
-                                navLink: 'https://www.google.com/maps/search/?api=1&query=MIMARU+OSAKA+SHINSAIBASHI+NORTH',
-                                location: 'MIMARU 大阪 心齋橋NORTH',
-                                desc: '最後一晚，整理戰利品。',
-                                colorClass: 'border-l-4 border-slate-400',
-                                bgClass: 'bg-slate-100',
-                                highlight: false,
-                                mustEat: false,
-                                img: 'https://images.unsplash.com/photo-1522771753033-6a9a6f9f7258?q=80&w=600&auto=format&fit=crop',
-                                highlights: '檢查護照、機票與所有行李。',
-                                tips: '明天要搭機返台，建議今晚將所有行李打包完畢，預留隨身行李空間。'
-                            }
+                            { id: 'd4-ara', time: '09:30', title: '嵐山小火車 & 竹林', navLink: 'https://www.google.com/maps/search/?api=1&query=Arashiyama+Station', desc: '搭乘復古小火車', colorClass: 'border-l-4 border-green-600', bgClass: 'bg-green-50', img: 'https://drive.google.com/thumbnail?id=1glCLVeHE-P31n-lRTQ9av4-v7yk0LFLJ&sz=w2560', highlights: '搭乘嵯峨野觀光小火車，沿途欣賞保津川峽谷的四季美景；下車後漫步於高聳遮天的竹林小徑（竹林之道），感受京都特有的幽靜氛圍。', food: false, tips: '小火車票務必提前一個月預約。' },
+                            { id: 'd4-shin', time: '15:00', title: '心齋橋 & 道頓堀', desc: '購物與美食', colorClass: 'border-l-4 border-pink-400', bgClass: 'bg-pink-50', img: 'https://images.unsplash.com/photo-1590253230530-9b6f50c05c32?q=80&w=200', highlights: '購物天堂！藥妝、服飾、電器一次買齊。', foodList: [{name: '一蘭', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Ichiran_Ramen_20130629.jpg/640px-Ichiran_Ramen_20130629.jpg'}, {name: '蟹道樂', img: 'https://c8.alamy.com/comp/2PNXYXM/april-2023-osaka-food-giant-crab-sign-outside-of-the-kani-doraku-crab-restaurant-in-the-dotonbori-district-of-osakajapanasia-2PNXYXM.jpg'}, {name: '章魚燒', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Takoyaki_by_music4life_in_Osaka.jpg/640px-Takoyaki_by_music4life_in_Osaka.jpg'}], tips: '購物記得帶護照退稅。' },
+                            { id: 'd4-htl', time: '22:00', title: 'MIMARU 心齋橋NORTH', navLink: 'https://www.google.com/maps/search/?api=1&query=MIMARU+OSAKA+SHINSAIBASHI+NORTH', desc: '最後一晚整理戰利品', colorClass: 'border-l-4 border-slate-400', bgClass: 'bg-slate-100', img: 'https://drive.google.com/thumbnail?id=1RhNO2QQ5DMM466tQZEeXZhg62ShUnteW&sz=w2560', highlights: '檢查護照、機票與所有行李。', tips: '明天要搭機返台，建議今晚將所有行李打包完畢。' }
                         ]
                     },
                     {
-                        dateLabel: '3/22',
-                        date: '3/22',
-                        dayOfWeek: 'SUN.',
-                        label: 'D5 返家',
-                        title: '黑門市場 & 返台',
-                        subtitle: '海鮮早午餐 • 滿載而歸',
-                        heroImg: 'https://drive.google.com/thumbnail?id=13Y0Qn7dB6jXGXAC0xVBm9jIdFYnDUIas&sz=w2560', 
+                        date: '3/22', dayOfWeek: 'SUN.', label: 'D5 返家', title: '黑門市場 & 返台', subtitle: '海鮮早午餐 • 滿載而歸', heroImg: 'https://drive.google.com/thumbnail?id=13Y0Qn7dB6jXGXAC0xVBm9jIdFYnDUIas&sz=w2560',
                         events: [
-                            {
-                                id: 'd5-kuromon',
-                                time: '09:30',
-                                title: '黑門市場',
-                                desc: '大阪人的廚房，吃爆海鮮當早午餐。',
-                                colorClass: 'border-l-4 border-gray-400',
-                                bgClass: 'bg-gray-100',
-                                highlight: false,
-                                mustEat: true,
-                                img: 'https://images.unsplash.com/photo-1590924976721-e0c1f678f564?auto=format&fit=crop&q=80&w=200',
-                                highlights: '現烤扇貝、海膽、神戶牛串燒。',
-                                food: true,
-                                foodList: [
-                                    { name: '黑銀鮪魚屋 (大推生魚片)', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/Maguro_sashimi.jpg/640px-Maguro_sashimi.jpg' },
-                                    { name: '高橋食品 (豆漿)', img: 'https://kuromon.com/wp/wp-content/uploads/2018/06/takahashishokuhin_01.jpg' },
-                                    { name: '石橋食品 (關東煮)', img: 'https://www.magical-trip.com/assets/img/spot/kuromon-market-guide/ishibashi-shokuhin.jpg' }
-                                ],
-                                tips: '部分店家不收信用卡，準備現金。'
-                            },
-                            {
-                                id: 'd5-shopping',
-                                time: '12:00',
-                                title: '關西機場購物',
-                                navLink: 'https://maps.app.goo.gl/4TPTZqY62tdyDWQB8',
-                                desc: '免稅店最後衝刺，把日幣花光！',
-                                colorClass: 'border-l-4 border-pink-400',
-                                bgClass: 'bg-pink-50',
-                                highlight: true,
-                                mustEat: false,
-                                img: 'https://images.unsplash.com/photo-1569388330292-7a61a109cc05?q=80&w=600&auto=format&fit=crop',
-                                highlights: '推薦購買：赤福、ROYCE巧克力、白色戀人、呼吸巧克力、LeTAO起司蛋糕。',
-                                tips: '國際線建議提早 2.5 小時抵達機場辦理登機。'
-                            },
-                            {
-                                id: 'd5-flight',
-                                time: '14:30',
-                                title: '華航 CI153',
-                                location: '關西國際機場',
-                                desc: '帶著滿滿回憶返台。',
-                                colorClass: 'border-l-4 border-sky-400',
-                                bgClass: 'bg-sky-50',
-                                highlight: false,
-                                mustEat: false,
-                                img: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=600&auto=format&fit=crop',
-                                highlights: '預計 16:45 抵達桃園機場 (TPE)。',
-                                tips: '再次檢查護照與隨身行李，準備登機。'
-                            }
+                            { id: 'd5-kuro', time: '09:30', title: '黑門市場', desc: '大阪人的廚房', colorClass: 'border-l-4 border-gray-400', bgClass: 'bg-gray-100', img: 'https://images.unsplash.com/photo-1590924976721-e0c1f678f564?q=80&w=200', highlights: '現烤扇貝、海膽、神戶牛串燒。', foodList: [{name: '黑銀鮪魚屋', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/Maguro_sashimi.jpg/640px-Maguro_sashimi.jpg'}, {name: '高橋豆漿', img: 'https://kuromon.com/wp/wp-content/uploads/2018/06/takahashishokuhin_01.jpg'}, {name: '石橋關東煮', img: 'https://www.magical-trip.com/assets/img/spot/kuromon-market-guide/ishibashi-shokuhin.jpg'}], tips: '部分店家不收信用卡，準備現金。' },
+                            { id: 'd5-shop', time: '12:00', title: '關西機場購物', navLink: 'https://maps.app.goo.gl/4TPTZqY62tdyDWQB8', desc: '最後衝刺', colorClass: 'border-l-4 border-pink-400', bgClass: 'bg-pink-50', img: 'https://images.unsplash.com/photo-1569388330292-7a61a109cc05?q=80&w=200', highlights: '推薦購買：赤福、ROYCE巧克力、白色戀人。', tips: '國際線建議提早 2.5 小時抵達機場。' },
+                            { id: 'd5-fly', time: '14:30', title: '華航 CI153', location: '關西國際機場', desc: '16:45 抵達桃園', colorClass: 'border-l-4 border-sky-400', bgClass: 'bg-sky-50', img: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=200', highlights: '預計 16:45 抵達桃園機場 (TPE)。', tips: '再次檢查護照與隨身行李，準備登機。' }
                         ]
                     }
                 ],
-
-                // ================= METHODS =================
+                
                 async init() {
+                    const ops = window.firebaseOps;
                     const auth = window.auth;
-                    try {
-                        if (window.firebaseReady) {
+                    if(window.firebaseReady) {
+                        try {
                             if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                                await window.signInWithCustomToken(auth, __initial_auth_token);
+                                await ops.signInWithCustomToken(auth, __initial_auth_token);
                             } else {
-                                await window.signInAnonymously(auth);
+                                await ops.signInAnonymously(auth);
                             }
-                        }
-                    } catch (e) {
-                        console.error("Authentication failed:", e);
-                    }
-
-                    if (window.onAuthStateChanged) {
-                        window.onAuthStateChanged(auth, (user) => {
-                            if (user) {
+                        } catch(e) { console.error(e); }
+                        
+                        ops.onAuthStateChanged(auth, (user) => {
+                            if(user) {
                                 this.userId = user.uid;
-                                this.listenToExpenses();
+                                this.listenExpenses();
                             }
                         });
                     }
                 },
-
-                listenToExpenses() {
-                    if (!this.userId || !window.firebaseReady) return;
-                    const q = window.query(
-                        window.collection(window.db, 'artifacts', window.appId, 'users', this.userId, 'expenses'),
-                        window.orderBy('createdAt', 'desc')
-                    );
-                    
-                    window.onSnapshot(q, (snapshot) => {
-                        const newExpenses = [];
-                        snapshot.forEach((doc) => {
-                            newExpenses.push({ id: doc.id, ...doc.data() });
-                        });
-                        this.expenses = newExpenses;
-                        this.calculateTotal();
-                    }, (error) => {
-                        console.error("Firestore error:", error);
+                
+                listenExpenses() {
+                    if(!this.userId) return;
+                    const ops = window.firebaseOps;
+                    const q = ops.query(ops.collection(window.db, 'artifacts', window.appId, 'users', this.userId, 'expenses'), ops.orderBy('createdAt', 'desc'));
+                    ops.onSnapshot(q, (snapshot) => {
+                        this.expenses = [];
+                        snapshot.forEach(doc => this.expenses.push({id: doc.id, ...doc.data()}));
+                        this.totalExpenseJPY = this.expenses.reduce((sum, i) => sum + i.amount, 0);
                     });
                 },
 
-                calculateTotal() {
-                    this.totalExpenseJPY = this.expenses.reduce((sum, item) => sum + item.amount, 0);
-                },
-
                 async addExpense() {
-                    if (!this.userId || !this.newExpense.name || !this.newExpense.amount) return;
-                    
-                    const amount = parseInt(this.newExpense.amount);
-                    const expenseData = {
+                    if(!this.userId || !this.newExpense.name || !this.newExpense.amount) return;
+                    const ops = window.firebaseOps;
+                    const amt = parseInt(this.newExpense.amount);
+                    await ops.addDoc(ops.collection(window.db, 'artifacts', window.appId, 'users', this.userId, 'expenses'), {
                         name: this.newExpense.name,
-                        amount: amount,
-                        amountTWD: Math.round(amount * this.exchangeRate),
+                        amount: amt,
+                        amountTWD: Math.round(amt * this.exchangeRate),
                         category: this.newExpense.category,
                         paymentMethod: this.newExpense.paymentMethod,
-                        date: new Date().toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' }),
+                        date: new Date().toLocaleDateString('zh-TW', {month:'numeric', day:'numeric'}),
                         createdAt: Date.now()
-                    };
-
-                    try {
-                        await window.addDoc(
-                            window.collection(window.db, 'artifacts', window.appId, 'users', this.userId, 'expenses'),
-                            expenseData
-                        );
-                        // Reset form
-                        this.newExpense.name = '';
-                        this.newExpense.amount = '';
-                        this.showAddExpense = false;
-                        this.showCategoryMenu = false;
-                    } catch (e) {
-                        console.error("Add failed", e);
-                    }
+                    });
+                    this.newExpense.name = ''; this.newExpense.amount = '';
+                    this.showAddExpense = false;
                 },
 
                 async deleteExpense(id) {
-                    if (!this.userId || !id) return;
-                    if(!confirm("確定要刪除這筆紀錄嗎？")) return;
-
-                    try {
-                        await window.deleteDoc(
-                            window.doc(window.db, 'artifacts', window.appId, 'users', this.userId, 'expenses', id)
-                        );
-                    } catch (e) {
-                        console.error("Delete failed", e);
-                    }
-                },
-                
-                getCategory(id) {
-                    return this.categories.find(c => c.id === id) || this.categories[0];
-                },
-                
-                openModal(spot) {
-                    this.selectedEvent = spot;
-                    this.showDetailModal = true;
+                    if(!confirm("刪除此紀錄？")) return;
+                    const ops = window.firebaseOps;
+                    await ops.deleteDoc(ops.doc(window.db, 'artifacts', window.appId, 'users', this.userId, 'expenses', id));
                 },
 
-                closeModal() {
-                    this.showDetailModal = false;
-                },
-
-                openFoodModal(foodItem) {
-                    this.selectedFood = foodItem;
-                    this.showFoodModal = true;
-                },
-                
-                closeFoodModal() {
-                    this.showFoodModal = false;
-                    this.selectedFood = null;
-                },
-
-                changeDay(index) {
-                    this.selectedDay = index;
-                }
+                getCategory(id) { return this.categories.find(c => c.id === id) || this.categories[0]; },
+                openModal(spot) { this.selectedEvent = spot; this.showDetailModal = true; },
+                closeModal() { this.showDetailModal = false; },
+                openFoodModal(item) { this.selectedFood = item; this.showFoodModal = true; },
+                closeFoodModal() { this.showFoodModal = false; },
+                changeDay(idx) { this.selectedDay = idx; }
             }
         }
     </script>
-
-    <!-- Alpine.js -->
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
-
     <style>
-        /* Base Settings - Vintage Beige Mode */
-        body {
-            font-family: 'Noto Sans TC', sans-serif;
-            background-color: #e2ded3; /* Vintage Beige Background */
-            -webkit-tap-highlight-color: transparent;
-            margin: 0;
-            padding: 0;
-            overscroll-behavior-y: none; /* Prevent bounce */
-            color: #1d1d1f; 
-        }
-
-        /* App Container - Vintage Beige Mode */
-        #app-frame {
-            max-width: 480px;
-            margin: 0 auto;
-            background-color: #e2ded3; /* Match body background */
-            height: 100vh;
-            max-height: 100vh;
-            overflow: hidden;
-            position: relative;
-            box-shadow: 0 0 30px rgba(0,0,0,0.05); /* Softer shadow */
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-        /* Font Setting for FangSong style */
-        .font-fangsong {
-            font-family: "Huiwen Fangsong", "FangSong", "STFangsong", "Noto Serif TC", serif;
-        }
-
-        /* Washi Paper Texture for Modals */
-        .washi-paper {
-            background-color: #fffdf6; /* Warm Ivory */
-            background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
-        }
-        
-        /* Utility class for masking image edges to fade into background */
-        .img-mask-fade {
-            -webkit-mask-image: radial-gradient(ellipse at center, black 60%, transparent 100%);
-            mask-image: radial-gradient(ellipse at center, black 60%, transparent 100%);
-        }
-
-        /* Gold Gradient Text */
-        .gold-text {
-            color: #bfa15f; /* Fallback */
-            background: linear-gradient(45deg, #bf953f, #cfb53b, #b38728, #e3c457, #aa771c);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        /* Floating Card Style (Warm Ivory on Beige Bg) */
-        .float-card {
-            background-color: #fffdf6; /* Warm Ivory Card */
-            border-radius: 1.2rem;
-            /* Layered shadow for floating effect */
-            box-shadow: 
-                0 4px 6px -1px rgba(0, 0, 0, 0.05), 
-                0 12px 20px -4px rgba(0, 0, 0, 0.05);
-            /* Very subtle white border to make it pop */
-            border: 1px solid rgba(255, 255, 255, 0.6); 
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        }
-
-        .float-card:active {
-            transform: scale(0.98);
-            box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-        }
-
-        /* Hero Image Card Height */
-        .hero-overlay {
-            position: absolute;
-            inset: 0;
-            /* Seamless blend to #e2ded3 */
-            /* Adjusted gradient stops to cover the subtitle text area (approx bottom-12) with more opacity */
-            background: linear-gradient(to bottom, 
-                rgba(0,0,0,0.2) 0%, 
-                rgba(0,0,0,0) 40%, 
-                rgba(226,222,211,0.6) 70%, 
-                rgba(226,222,211,0.95) 90%, 
-                #e2ded3 100%);
-        }
-
-        /* Frosted Glass - Weather Widget */
-        .glass-weather {
-            background: rgba(255, 255, 255, 0.5); /* Lighter glass */
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.6);
-            border-radius: 20px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-        }
-
-        /* Scrollable Content Container */
-        .scrollable-content {
-            overflow-y: auto;
-            padding-bottom: 100px;
-            scrollbar-width: none; 
-        }
-        .scrollable-content::-webkit-scrollbar {
-            display: none;
-        }
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #e2ded3; color: #1d1d1f; margin: 0; overscroll-behavior-y: none; }
+        #app-frame { max-width: 480px; margin: 0 auto; background-color: #e2ded3; height: 100vh; overflow: hidden; position: relative; box-shadow: 0 0 30px rgba(0,0,0,0.05); display: flex; flex-direction: column; }
+        .no-scrollbar::-webkit-scrollbar { display: none; } .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .font-fangsong { font-family: "Huiwen Fangsong", "FangSong", "STFangsong", "Noto Serif TC", serif; }
+        .washi-paper { background-color: #fffdf6; background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E"); }
+        .img-mask-fade { -webkit-mask-image: radial-gradient(ellipse at center, black 60%, transparent 100%); mask-image: radial-gradient(ellipse at center, black 60%, transparent 100%); }
+        .gold-text { color: #bfa15f; background: linear-gradient(45deg, #bf953f, #cfb53b, #b38728, #e3c457, #aa771c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .float-card { background-color: #fffdf6; border-radius: 1.2rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid rgba(255,255,255,0.6); transition: all 0.3s; }
+        .float-card:active { transform: scale(0.98); }
+        .hero-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0) 40%, rgba(226,222,211,0.6) 70%, rgba(226,222,211,0.95) 90%, #e2ded3 100%); }
+        .date-gradient-overlay { background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%); }
+        .glass-weather { background: rgba(255,255,255,0.5); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.6); border-radius: 20px; }
+        .scrollable-content { overflow-y: auto; padding-bottom: 100px; scrollbar-width: none; }
     </style>
 </head>
 <body x-data="appData()" x-init="init()">
-
-    <!-- App Frame Wrapper -->
     <div id="app-frame">
-        
-        <!-- COVER PAGE -->
+        <!-- COVER -->
         <div class="flex flex-col h-full w-full relative z-20" x-show="activeTab === 'cover'" x-transition:leave="transition ease-in duration-500" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
-            <!-- Lightened Cover Background -->
-            <div class="absolute inset-0 z-0">
-                <img src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=1000&auto=format&fit=crop" class="w-full h-full object-cover opacity-60">
-                <div class="absolute inset-0 bg-gradient-to-b from-[#e2ded3] via-transparent to-[#e2ded3]"></div>
-            </div>
+            <div class="absolute inset-0 z-0"><img src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=1000" class="w-full h-full object-cover opacity-60"><div class="absolute inset-0 bg-gradient-to-b from-[#e2ded3] via-transparent to-[#e2ded3]"></div></div>
             <div class="relative z-10 flex flex-col items-center justify-center h-full text-center p-8">
                 <div class="w-1 h-20 bg-gradient-to-b from-transparent to-[#d4af37] mb-8"></div>
                 <h2 class="text-stone-600 text-lg tracking-[0.5em] mb-8 font-light">2026 SPRING</h2>
-                <!-- Cover Title -->
                 <div class="flex items-center justify-center" style="writing-mode: vertical-rl;">
                     <div class="text-2xl font-bold text-stone-500 font-fangsong tracking-[0.3em] mx-2 mt-4">家族旅行</div>
                     <div class="text-6xl font-bold text-stone-800 font-fangsong tracking-[0.3em] mx-4 leading-none">京阪</div>
                 </div>
-                <!-- Start Button (Spring style) -->
-                <button @click="activeTab = 'home'" class="mt-16 px-8 py-3 bg-white/40 border border-white/60 rounded-full text-stone-700 hover:bg-white/60 transition-all backdrop-blur-md tracking-widest font-fangsong flex items-center gap-2 shadow-sm">
-                    <span>開啟旅程</span>
-                    <i class="fas fa-chevron-right text-xs opacity-70"></i>
-                </button>
+                <button @click="activeTab = 'home'" class="mt-16 px-8 py-3 bg-white/40 border border-white/60 rounded-full text-stone-700 hover:bg-white/60 transition-all backdrop-blur-md tracking-widest font-fangsong flex items-center gap-2 shadow-sm"><span>開啟旅程</span><i class="fas fa-chevron-right text-xs opacity-70"></i></button>
             </div>
         </div>
-
         <canvas id="sakura-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-30"></canvas>
-
-        <!-- MAIN APP -->
+        
+        <!-- HOME -->
         <div class="flex flex-col h-full w-full" x-show="activeTab === 'home'" style="display: none;">
-            <!-- 1. Hero Section -->
             <div class="px-0 pt-0 pb-0 flex-shrink-0">
-                <div class="relative overflow-hidden h-[30vh] bg-[#e2ded3] shadow-none border-none">
-                    <div class="absolute top-3 left-4 z-20 text-white drop-shadow-md border-l-2 border-white/80 pl-3 py-1 text-left">
-                        <div class="font-bold tracking-[0.1em] text-sm opacity-90 mb-0.5 text-stone-100">2026。春</div>
-                        <div class="font-bold tracking-[0.15em] text-xl leading-none">京阪家族旅行</div>
-                    </div>
-                    <!-- Images -->
-                    <template x-for="(day, index) in days" :key="index">
-                        <img :src="day.heroImg"
-                             x-show="selectedDay === index"
-                             x-transition:enter="transition opacity ease-in-out duration-[2000ms]"
-                             x-transition:enter-start="opacity-0"
-                             x-transition:enter-end="opacity-80"
-                             x-transition:leave="transition opacity ease-in-out duration-[2000ms]"
-                             x-transition:leave-start="opacity-80"
-                             x-transition:leave-end="opacity-0"
-                             class="absolute inset-0 w-full h-full object-cover"
-                             onerror="this.src='https://images.unsplash.com/photo-1590559399607-90d523102a9e?q=80&w=1000&auto=format&fit=crop'">
-                    </template>
+                <div class="relative overflow-hidden h-[30vh] bg-[#e2ded3]">
+                    <div class="absolute top-3 left-4 z-20 text-white drop-shadow-md border-l-2 border-white/80 pl-3 py-1 text-left"><div class="font-bold tracking-[0.1em] text-sm opacity-90 mb-0.5 text-stone-100">2026。春</div><div class="font-bold tracking-[0.15em] text-xl leading-none">京阪家族旅行</div></div>
+                    <template x-for="(day, index) in days" :key="index"><img :src="day.heroImg" x-show="selectedDay === index" x-transition:enter="transition opacity ease-in-out duration-[2000ms]" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-80" class="absolute inset-0 w-full h-full object-cover"></template>
                     <div class="hero-overlay"></div>
-                    <!-- Weather -->
-                    <div class="absolute top-4 right-4 z-20">
-                        <div class="glass-weather p-2 pl-3 flex items-center gap-2 text-stone-700">
-                            <div class="flex flex-col items-center pr-2 border-r border-stone-300/50">
-                                <span class="text-[10px] font-bold tracking-wider text-stone-600">大阪</span>
-                                <i class="fas fa-cloud-sun text-xs mt-0.5 text-orange-400"></i>
-                            </div>
-                            <div class="flex overflow-x-auto no-scrollbar gap-2 max-w-[100px]">
-                                <template x-for="hour in weatherForecast" :key="hour.time">
-                                    <div class="flex flex-col items-center flex-shrink-0 min-w-[20px]">
-                                        <span class="text-[8px] opacity-70 text-stone-500" x-text="hour.time"></span>
-                                        <span class="text-[9px] font-bold mt-0.5 text-stone-700" x-text="hour.temp"></span>
-                                    </div>
-                                </template>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Day Title -->
-                    <div class="absolute bottom-12 right-6 z-20 text-right">
-                        <h1 class="text-sm font-bold text-stone-700 leading-tight tracking-wide" x-text="days[selectedDay].title"></h1>
-                        <span class="text-stone-500 text-[9px] font-medium tracking-wide block mt-1" x-text="days[selectedDay].subtitle"></span>
-                    </div>
+                    <div class="absolute top-4 right-4 z-20"><div class="glass-weather p-2 pl-3 flex items-center gap-2 text-stone-700"><div class="flex flex-col items-center pr-2 border-r border-stone-300/50"><span class="text-[10px] font-bold tracking-wider text-stone-600">大阪</span><i class="fas fa-cloud-sun text-xs mt-0.5 text-orange-400"></i></div><div class="flex overflow-x-auto no-scrollbar gap-2 max-w-[100px]"><template x-for="hour in weatherForecast"><div class="flex flex-col items-center flex-shrink-0 min-w-[20px]"><span class="text-[8px] opacity-70 text-stone-500" x-text="hour.time"></span><span class="text-[9px] font-bold mt-0.5 text-stone-700" x-text="hour.temp"></span></div></template></div></div></div>
+                    <div class="absolute bottom-12 right-6 z-20 text-right"><h1 class="text-sm font-bold text-stone-700 leading-tight tracking-wide" x-text="days[selectedDay].title"></h1><span class="text-stone-500 text-[9px] font-medium tracking-wide block mt-1" x-text="days[selectedDay].subtitle"></span></div>
                 </div>
-                <!-- Date Tabs (Moved outside hero image) -->
                 <div class="w-full z-30 flex justify-between px-6 pt-2 pb-1 bg-[#e2ded3]">
-                        <template x-for="(day, index) in days" :key="index">
-                            <button @click="changeDay(index)" 
-                                    class="flex flex-col items-center justify-end transition-all duration-300 group pb-2"
-                                    :class="selectedDay === index ? 'opacity-100 translate-y-0' : 'opacity-50 hover:opacity-80'">
-                                <div class="flex flex-col items-center leading-none">
-                                     <span class="text-sm font-bold text-stone-600 font-mono drop-shadow-sm" x-text="day.date"></span>
-                                     <span class="text-[10px] font-bold text-stone-400 font-mono mt-0.5" x-text="day.dayOfWeek"></span>
-                                </div>
-                                <div class="h-1 rounded-full bg-rose-400 mt-1 transition-all duration-300 shadow-sm"
-                                     :class="selectedDay === index ? 'w-full opacity-100' : 'w-0 opacity-0'"></div>
-                            </button>
-                        </template>
+                    <template x-for="(day, index) in days" :key="index">
+                        <button @click="changeDay(index)" class="flex flex-col items-center justify-end transition-all duration-300 group pb-2" :class="selectedDay === index ? 'opacity-100 translate-y-0' : 'opacity-50 hover:opacity-80'">
+                            <div class="flex flex-col items-center leading-none"><span class="text-sm font-bold text-stone-600 font-mono drop-shadow-sm" x-text="day.date"></span><span class="text-[10px] font-bold text-stone-400 font-mono mt-0.5" x-text="day.dayOfWeek"></span></div>
+                            <div class="h-1 rounded-full bg-rose-400 mt-1 transition-all duration-300 shadow-sm" :class="selectedDay === index ? 'w-full opacity-100' : 'w-0 opacity-0'"></div>
+                        </button>
+                    </template>
                 </div>
             </div>
-
-            <!-- 2. Content -->
             <div class="flex-1 relative z-10 px-5 pt-1 scrollable-content bg-[#e2ded3]">
                 <div class="space-y-0 pb-8 relative">
                     <template x-for="(spot, index) in days[selectedDay].events" :key="spot.id || spot.title">
                         <div class="relative z-10 flex">
-                            <!-- Timeline -->
                             <div class="flex flex-col items-center mr-2 w-[2rem] flex-shrink-0 relative">
                                 <span class="text-[10px] font-bold text-stone-400 font-mono mb-1 pt-2" x-text="spot.time"></span>
                                 <div class="w-2.5 h-2.5 rounded-full border-2 border-[#e2ded3] shadow-sm z-10 bg-rose-300"></div>
                                 <div class="w-0.5 bg-stone-300 flex-1 my-1" x-show="index !== days[selectedDay].events.length - 1"></div>
                             </div>
-                            <!-- Card -->
                             <div class="flex-1 pb-4 mr-2">
                                 <template x-if="spot.type === 'split'">
-                                    <div class="grid grid-cols-2 gap-3 h-full">
-                                        <template x-for="subSpot in spot.items" :key="subSpot.id || subSpot.title">
-                                            <div @click="openModal(subSpot)" class="float-card p-2 flex flex-col gap-1 relative overflow-hidden group cursor-pointer h-26 hover:shadow-md transition-shadow">
-                                                <div class="flex-1 flex flex-col justify-center items-center text-center w-full">
-                                                    <div class="flex items-center gap-1 mb-1">
-                                                        <div class="w-1.5 h-1.5 rounded-full" :class="subSpot.colorClass.replace('border-l-4', 'bg')"></div>
-                                                        <span class="text-[10px] font-bold text-stone-400 font-mono" x-text="subSpot.time"></span>
-                                                    </div>
-                                                    <h3 class="font-fangsong font-bold text-stone-700 text-lg leading-tight mb-1 line-clamp-1" x-text="subSpot.title"></h3>
-                                                    <p class="text-xs text-stone-400 line-clamp-2 leading-relaxed" x-text="subSpot.desc"></p>
-                                                </div>
-                                            </div>
-                                        </template>
-                                    </div>
+                                    <div class="grid grid-cols-2 gap-3 h-full"><template x-for="subSpot in spot.items"><div @click="openModal(subSpot)" class="float-card p-2 flex flex-col gap-1 relative overflow-hidden group cursor-pointer h-26 hover:shadow-md transition-shadow"><div class="flex-1 flex flex-col justify-center items-center text-center w-full"><div class="flex items-center gap-1 mb-1"><div class="w-1.5 h-1.5 rounded-full" :class="subSpot.colorClass.replace('border-l-4', 'bg')"></div></div><h3 class="font-fangsong font-bold text-stone-700 text-lg leading-tight mb-1 line-clamp-1" x-text="subSpot.title"></h3><p class="text-xs text-stone-400 line-clamp-2 leading-relaxed" x-text="subSpot.desc"></p></div></div></template></div>
                                 </template>
                                 <template x-if="!spot.type">
-                                    <div @click="openModal(spot)" class="float-card p-2 flex gap-4 relative overflow-hidden group cursor-pointer h-26 hover:shadow-md transition-shadow">
-                                        <div class="absolute left-0 top-0 bottom-0 w-1" :class="spot.colorClass ? spot.colorClass.replace('border-l-4', 'bg') : 'bg-stone-300'"></div>
-                                        <div class="flex-1 flex flex-col justify-center items-center text-center w-full py-1">
-                                            <h3 class="font-fangsong font-bold text-stone-700 text-lg leading-tight mb-1 line-clamp-1" x-text="spot.title"></h3>
-                                            <p class="text-xs text-stone-400 mb-1 line-clamp-2 leading-relaxed font-light" x-text="spot.desc"></p>
-                                        </div>
-                                    </div>
+                                    <div @click="openModal(spot)" class="float-card p-2 flex gap-4 relative overflow-hidden group cursor-pointer h-26 hover:shadow-md transition-shadow"><div class="absolute left-0 top-0 bottom-0 w-1" :class="spot.colorClass ? spot.colorClass.replace('border-l-4', 'bg') : 'bg-stone-300'"></div><div class="flex-1 flex flex-col justify-center items-center text-center w-full py-1"><h3 class="font-fangsong font-bold text-stone-700 text-lg leading-tight mb-1 line-clamp-1" x-text="spot.title"></h3><p class="text-xs text-stone-400 mb-1 line-clamp-2 leading-relaxed font-light" x-text="spot.desc"></p></div></div>
                                 </template>
                             </div>
                         </div>
@@ -873,97 +253,51 @@
                 </div>
             </div>
         </div>
-        
-        <!-- Wallet & Modals (Updated colors) -->
+
+        <!-- WALLET -->
         <main class="flex-1 bg-[#e2ded3] relative z-10 scrollable-content p-6 pt-12" x-show="activeTab === 'wallet'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
              <h2 class="text-xl font-bold text-stone-700 mb-6">記帳小幫手</h2>
              <div class="bg-gradient-to-br from-rose-100 to-pink-200 text-stone-700 rounded-2xl p-6 mb-8 relative overflow-hidden shadow-lg">
-                <div class="flex justify-between items-start mb-4">
-                    <p class="text-xs text-stone-500 font-medium">總支出 (日幣)</p>
-                    <span class="text-[10px] bg-white/50 border border-white/20 px-2 py-1 rounded text-stone-600">匯率 0.20</span>
-                </div>
+                <div class="flex justify-between items-start mb-4"><p class="text-xs text-stone-500 font-medium">總支出 (日幣)</p><span class="text-[10px] bg-white/50 border border-white/20 px-2 py-1 rounded text-stone-600">匯率 0.20</span></div>
                 <h3 class="text-3xl font-bold tracking-tight mb-1 text-rose-800">¥ <span x-text="totalExpenseJPY.toLocaleString()"></span></h3>
                 <p class="text-stone-500 text-xs font-medium mb-6">≈ NT$ <span x-text="Math.round(totalExpenseJPY * exchangeRate).toLocaleString()"></span></p>
-                <button @click="showAddExpense = true" class="w-full bg-white text-rose-500 py-3 rounded-xl text-xs font-bold hover:bg-rose-50 active:scale-95 transition-all flex items-center justify-center shadow-sm">
-                    <i class="fas fa-plus mr-2"></i> 記一筆
-                </button>
+                <button @click="showAddExpense = true" class="w-full bg-white text-rose-500 py-3 rounded-xl text-xs font-bold hover:bg-rose-50 shadow-sm"><i class="fas fa-plus mr-2"></i> 記一筆</button>
             </div>
-            <!-- Expense List -->
              <div class="mb-3 flex justify-between items-center"><h3 class="text-sm font-bold text-stone-600">最近紀錄</h3><span class="text-[10px] text-stone-400" x-text="expenses.length + ' 筆'"></span></div>
              <div class="float-card p-1 min-h-[200px]">
                 <ul class="divide-y divide-stone-200">
                     <template x-for="(item, index) in expenses" :key="index">
                         <li class="flex justify-between items-center p-3 hover:bg-rose-50/50 transition-colors rounded-xl group relative pr-8">
-                            <div class="flex items-center gap-3">
-                                <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm shadow-sm" :class="getCategory(item.category).color"><i :class="getCategory(item.category).icon"></i></div>
-                                <div><div class="flex items-center gap-2 mb-0.5"><p class="font-bold text-stone-700 text-xs" x-text="item.name"></p></div><p class="text-[9px] text-stone-400 font-medium" x-text="item.date"></p></div>
-                            </div>
+                            <div class="flex items-center gap-3"><div class="w-9 h-9 rounded-full flex items-center justify-center text-sm shadow-sm" :class="getCategory(item.category).color"><i :class="getCategory(item.category).icon"></i></div><div><p class="font-bold text-stone-700 text-xs" x-text="item.name"></p><p class="text-[9px] text-stone-400 font-medium" x-text="item.date"></p></div></div>
                             <div class="text-right"><div class="font-bold text-stone-700 text-xs">-¥<span x-text="item.amount.toLocaleString()"></span></div><div class="text-[9px] text-stone-400">NT$<span x-text="item.amountTWD.toLocaleString()"></span></div></div>
-                            <!-- Delete Button -->
-                            <button @click.stop="deleteExpense(item.id)" class="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-red-400 p-2 transition-colors">
-                                <i class="fas fa-trash-alt text-xs"></i>
-                            </button>
+                            <button @click.stop="deleteExpense(item.id)" class="absolute right-2 text-stone-400 hover:text-red-400 p-2"><i class="fas fa-trash-alt text-xs"></i></button>
                         </li>
                     </template>
                 </ul>
             </div>
         </main>
         
-        <!-- Bottom Nav -->
         <nav class="absolute bottom-0 w-full z-40 px-6 pb-8 pt-4 pointer-events-none" x-show="activeTab !== 'cover'">
             <div class="pointer-events-auto bg-white/90 backdrop-blur-md rounded-full h-16 flex items-center justify-around shadow-xl border border-stone-100 mx-auto max-w-[280px]">
-                <button @click="activeTab = 'home'" :class="{'text-rose-500': activeTab === 'home', 'text-stone-300 hover:text-stone-400': activeTab !== 'home'}" class="flex flex-col items-center justify-center w-full h-full transition-colors group"><i class="fas fa-compass text-xl mb-1 transition-transform group-active:scale-90"></i><span class="text-[9px] font-bold tracking-wider">行程</span></button>
+                <button @click="activeTab = 'home'" :class="{'text-rose-500': activeTab === 'home', 'text-stone-300 hover:text-stone-400': activeTab !== 'home'}" class="flex flex-col items-center justify-center w-full h-full transition-colors group"><i class="fas fa-compass text-xl"></i><span class="text-[9px] font-bold">行程</span></button>
                 <div class="w-px h-6 bg-stone-100"></div>
-                <button @click="activeTab = 'wallet'" :class="{'text-rose-500': activeTab === 'wallet', 'text-stone-300 hover:text-stone-400': activeTab !== 'wallet'}" class="flex flex-col items-center justify-center w-full h-full transition-colors group"><i class="fas fa-wallet text-xl mb-1 transition-transform group-active:scale-90"></i><span class="text-[9px] font-bold tracking-wider">記帳</span></button>
+                <button @click="activeTab = 'wallet'" :class="{'text-rose-500': activeTab === 'wallet', 'text-stone-300 hover:text-stone-400': activeTab !== 'wallet'}" class="flex flex-col items-center justify-center w-full h-full transition-colors group"><i class="fas fa-wallet text-xl"></i><span class="text-[9px] font-bold">記帳</span></button>
             </div>
         </nav>
 
-        <!-- Modals (Washi Style Light) -->
+        <!-- Modals -->
         <div x-show="showDetailModal" class="fixed inset-0 z-50 flex items-end justify-center">
             <div x-show="showDetailModal" @click="closeModal()" x-transition.opacity class="absolute inset-0 bg-stone-800/30 backdrop-blur-sm"></div>
             <div x-show="showDetailModal" x-transition:enter="transition transform ease-out duration-300" x-transition:enter-start="translate-y-full" x-transition:enter-end="translate-y-0" x-transition:leave="transition transform ease-in duration-200" x-transition:leave-start="translate-y-0" x-transition:leave-end="translate-y-full" class="washi-paper w-full h-[75vh] rounded-t-[2rem] shadow-2xl flex flex-col overflow-hidden relative z-50 max-w-[480px] border-t-4 border-[#d4af37]">
-                <div class="p-6 pb-0 z-10 flex-shrink-0 bg-transparent">
-                    <div class="w-10 h-1 bg-stone-300 rounded-full mx-auto mb-6"></div>
-                    <template x-if="selectedEvent">
-                        <div class="flex justify-between items-start">
-                            <div><span class="text-[10px] font-bold text-stone-500 bg-white/50 px-2 py-1 rounded mb-2 inline-block shadow-sm border border-stone-200" x-text="selectedEvent.time"></span><h2 class="text-2xl font-bold text-stone-800 font-fangsong tracking-wide" x-text="selectedEvent.title"></h2></div>
-                            <button @click="closeModal()" class="w-8 h-8 rounded-full bg-white flex items-center justify-center text-stone-400 hover:bg-stone-50 transition-colors shadow-sm border border-stone-200"><i class="fas fa-times"></i></button>
-                        </div>
-                    </template>
-                </div>
-                <div class="overflow-y-auto p-6 flex-1 pb-24"> 
-                    <template x-if="selectedEvent">
-                        <div class="space-y-6">
-                            <div class="w-full bg-stone-100 rounded-2xl overflow-hidden relative flex-shrink-0 shadow-md border border-stone-200" :class="selectedEvent.detailImages ? '' : 'h-48'">
-                                <div class="absolute inset-0 img-mask-fade z-10 pointer-events-none"></div>
-                                <template x-if="!selectedEvent.detailImages"><img :src="selectedEvent.img" class="w-full h-full object-cover img-mask-fade" onerror="this.src='https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=1000&auto=format&fit=crop'" referrerpolicy="no-referrer"></template>
-                                <template x-if="selectedEvent.detailImages"><div class="flex flex-col"><template x-for="imgSrc in selectedEvent.detailImages"><img :src="imgSrc" class="w-full h-auto block img-mask-fade" onerror="this.src='https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=1000&auto=format&fit=crop'" referrerpolicy="no-referrer"></template></div></template>
-                            </div>
-                            <div class="p-4 flex-shrink-0 bg-white/60 border border-stone-200 rounded-xl shadow-sm">
-                                <h3 class="font-bold text-stone-800 mb-2 text-xs flex items-center uppercase tracking-wide opacity-80 font-fangsong border-b border-stone-200 pb-1 w-fit gold-text"><i class="fas fa-lightbulb text-[#d4af37] mr-2"></i> 亮點</h3>
-                                <p class="text-sm text-stone-600 leading-relaxed font-medium" x-text="selectedEvent.highlights"></p>
-                            </div>
-                            <div x-show="selectedEvent.food" class="flex-shrink-0">
-                                <h3 class="font-bold text-stone-800 mb-3 text-xs flex items-center uppercase tracking-wide opacity-80 font-fangsong border-b border-stone-200 pb-1 w-fit gold-text"><i class="fas fa-utensils text-[#d4af37] mr-2"></i> 推薦美食 (點擊看照片)</h3>
-                                <div class="grid gap-2"><template x-for="food in selectedEvent.foodList" :key="food.name"><button @click="openFoodModal(food)" class="flex items-center p-3 bg-white border border-stone-200 rounded-xl shadow-sm hover:shadow-md hover:bg-[#fff5f7] transition-all text-left w-full active:scale-98 group"><div class="w-8 h-8 rounded-lg bg-[#fff5f7] text-rose-400 border border-rose-100 flex items-center justify-center mr-3 flex-shrink-0 group-hover:bg-rose-400 group-hover:text-white transition-colors"><i class="fas fa-camera text-xs"></i></div><span class="text-xs font-bold text-stone-700 font-fangsong" x-text="food.name"></span></button></template></div>
-                            </div>
-                            <div x-show="selectedEvent.tips" class="flex-shrink-0">
-                                <h3 class="font-bold text-stone-800 mb-2 text-xs flex items-center uppercase tracking-wide opacity-80 font-fangsong border-b border-stone-200 pb-1 w-fit gold-text"><i class="fas fa-info-circle text-[#d4af37] mr-2"></i> 貼心小提醒</h3>
-                                <p class="text-xs text-stone-600 leading-relaxed pl-6 border-l-2 border-[#d4af37] ml-1 py-1" x-html="selectedEvent.tips"></p>
-                            </div>
-                            <div class="pt-4"><a :href="selectedEvent.navLink ? selectedEvent.navLink : 'https://www.google.com/maps/search/?api=1&query=' + (selectedEvent.location || selectedEvent.title)" target="_blank" class="flex items-center justify-center w-full bg-rose-400 text-white py-4 rounded-xl font-bold shadow-lg shadow-rose-200 hover:bg-rose-500 active:scale-95 transition-all text-sm flex-shrink-0 border border-rose-300"><i class="fas fa-location-arrow mr-2"></i> 導航去</a></div>
-                        </div>
-                    </template>
-                </div>
+                <div class="p-6 pb-0 z-10 flex-shrink-0 bg-transparent"><div class="w-10 h-1 bg-stone-300 rounded-full mx-auto mb-6"></div><template x-if="selectedEvent"><div class="flex justify-between items-start"><div><span class="text-[10px] font-bold text-stone-500 bg-white/50 px-2 py-1 rounded mb-2 inline-block shadow-sm border border-stone-200" x-text="selectedEvent.time"></span><h2 class="text-2xl font-bold text-stone-800 font-fangsong" x-text="selectedEvent.title"></h2></div><button @click="closeModal()" class="w-8 h-8 rounded-full bg-white text-stone-400 flex items-center justify-center"><i class="fas fa-times"></i></button></div></template></div>
+                <div class="overflow-y-auto p-6 flex-1 pb-24"><template x-if="selectedEvent"><div class="space-y-6"><div class="w-full bg-stone-100 rounded-2xl overflow-hidden relative flex-shrink-0 shadow-md border border-stone-200" :class="selectedEvent.detailImages ? '' : 'h-48'"><div class="absolute inset-0 img-mask-fade z-10 pointer-events-none"></div><template x-if="!selectedEvent.detailImages"><img :src="selectedEvent.img" class="w-full h-full object-cover img-mask-fade" onerror="this.src='https://images.unsplash.com/photo-1436491865332-7a61a109cc05'" referrerpolicy="no-referrer"></template><template x-if="selectedEvent.detailImages"><div class="flex flex-col"><template x-for="imgSrc in selectedEvent.detailImages"><img :src="imgSrc" class="w-full h-auto block img-mask-fade" referrerpolicy="no-referrer"></template></div></template></div><div class="p-4 flex-shrink-0 bg-white/60 border border-stone-200 rounded-xl shadow-sm" x-show="selectedEvent.highlights"><h3 class="font-bold text-stone-800 mb-2 text-xs flex items-center uppercase font-fangsong border-b border-stone-200 pb-1 gold-text"><i class="fas fa-lightbulb text-[#d4af37] mr-2"></i> 亮點</h3><p class="text-sm text-stone-600" x-text="selectedEvent.highlights"></p></div><div class="p-4 flex-shrink-0 bg-white/60 border border-stone-200 rounded-xl shadow-sm" x-show="!selectedEvent.highlights && selectedEvent.desc"><h3 class="font-bold text-stone-800 mb-2 text-xs flex items-center uppercase font-fangsong border-b border-stone-200 pb-1 gold-text"><i class="fas fa-info text-[#d4af37] mr-2"></i> 簡介</h3><p class="text-sm text-stone-600" x-text="selectedEvent.desc"></p></div><div x-show="selectedEvent.foodList && selectedEvent.foodList.length" class="flex-shrink-0"><h3 class="font-bold text-stone-800 mb-3 text-xs flex items-center uppercase font-fangsong border-b border-stone-200 pb-1 gold-text"><i class="fas fa-utensils text-[#d4af37] mr-2"></i> 推薦美食</h3><div class="grid gap-2"><template x-for="food in selectedEvent.foodList"><button @click="openFoodModal(food)" class="flex items-center p-3 bg-white border border-stone-200 rounded-xl shadow-sm hover:shadow-md transition-all text-left w-full group"><div class="w-8 h-8 rounded-lg bg-[#fff5f7] text-rose-400 border border-rose-100 flex items-center justify-center mr-3 group-hover:bg-rose-400 group-hover:text-white"><i class="fas fa-camera text-xs"></i></div><span class="text-xs font-bold text-stone-700 font-fangsong" x-text="food.name"></span></button></template></div></div><div x-show="selectedEvent.tips" class="flex-shrink-0"><h3 class="font-bold text-stone-800 mb-2 text-xs flex items-center uppercase font-fangsong border-b border-stone-200 pb-1 gold-text"><i class="fas fa-info-circle text-[#d4af37] mr-2"></i> 貼心小提醒</h3><p class="text-xs text-stone-600 leading-relaxed pl-6 border-l-2 border-[#d4af37] ml-1 py-1" x-html="selectedEvent.tips"></p></div><div class="pt-4"><a :href="selectedEvent.navLink ? selectedEvent.navLink : 'https://www.google.com/maps'" target="_blank" class="flex items-center justify-center w-full bg-rose-400 text-white py-4 rounded-xl font-bold shadow-lg shadow-rose-200 hover:bg-rose-500 active:scale-95 transition-all text-sm border border-rose-300"><i class="fas fa-location-arrow mr-2"></i> 導航去</a></div></div></template></div>
             </div>
         </div>
 
         <div x-show="showFoodModal" class="fixed inset-0 z-[60] flex items-center justify-center px-6">
             <div x-show="showFoodModal" @click="closeFoodModal()" x-transition.opacity class="absolute inset-0 bg-stone-800/40 backdrop-blur-md"></div>
             <div x-show="showFoodModal" x-transition:enter="transition transform ease-out duration-300" x-transition:enter-start="scale-90 opacity-0" x-transition:enter-end="scale-100 opacity-100" x-transition:leave="transition transform ease-in duration-200" x-transition:leave-start="scale-100 opacity-100" x-transition:leave-end="scale-90 opacity-0" class="relative z-[70] w-full max-w-sm washi-paper rounded-2xl overflow-hidden shadow-2xl border-t-4 border-[#d4af37]">
-                <template x-if="selectedFood">
-                    <div class="p-6 relative"><button @click="closeFoodModal()" class="absolute top-2 right-2 w-8 h-8 text-stone-400 hover:text-stone-600 flex items-center justify-center z-20 active:scale-90 transition-transform"><i class="fas fa-times text-lg"></i></button><div class="relative w-full rounded-lg overflow-hidden shadow-lg border-4 border-white bg-stone-200 transform rotate-1"><div class="aspect-[4/3]"><img :src="selectedFood.img" class="w-full h-full object-cover" referrerpolicy="no-referrer" onerror="this.src='https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=600'"></div><div class="absolute inset-0 bg-gradient-to-tr from-transparent to-white/10 pointer-events-none"></div></div><div class="mt-6 text-center"><h3 class="font-bold text-xl text-stone-800 font-fangsong" x-text="selectedFood.name"></h3><div class="w-12 h-1 bg-gradient-to-r from-[#bf953f] to-[#aa771c] mx-auto mt-3 mb-2 rounded-full"></div><p class="text-[10px] text-stone-400 mt-1">點擊背景即可關閉</p></div></div>
-                </template>
+                <template x-if="selectedFood"><div class="p-6 relative"><button @click="closeFoodModal()" class="absolute top-2 right-2 w-8 h-8 text-stone-400 hover:text-stone-600 flex items-center justify-center"><i class="fas fa-times text-lg"></i></button><div class="relative w-full rounded-lg overflow-hidden shadow-lg border-4 border-white bg-stone-200 transform rotate-1"><div class="aspect-[4/3]"><img :src="selectedFood.img" class="w-full h-full object-cover" referrerpolicy="no-referrer"></div></div><div class="mt-6 text-center"><h3 class="font-bold text-xl text-stone-800 font-fangsong" x-text="selectedFood.name"></h3><div class="w-12 h-1 bg-gradient-to-r from-[#bf953f] to-[#aa771c] mx-auto mt-3 mb-2 rounded-full"></div><p class="text-[10px] text-stone-400 mt-1">點擊背景即可關閉</p></div></div></template>
             </div>
         </div>
 
@@ -977,7 +311,7 @@
 
     </div>
 
-    <!-- Sakura Animation Script (Updated colors for light theme) -->
+    <!-- Sakura Animation Script -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const canvas = document.getElementById('sakura-canvas');
@@ -1013,7 +347,6 @@
                 draw() {
                     ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.rotation * Math.PI / 180); ctx.globalAlpha = this.opacity;
                     let gradient = ctx.createLinearGradient(-this.size, -this.size, 0, this.size);
-                    // Darker pinks for light background visibility
                     if (this.colorType === 'peach') {
                         gradient.addColorStop(0, "rgba(255, 182, 193, 1)"); gradient.addColorStop(1, "rgba(255, 105, 180, 1)"); 
                     } else {
